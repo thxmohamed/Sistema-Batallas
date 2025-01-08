@@ -1,15 +1,9 @@
 package com.example.Pokemon.Entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "efecto")
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Efecto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,4 +22,38 @@ public class Efecto {
     private tipoEfecto tipoEfecto;
     private double multiplicador;
     private String descripcion;
+
+    public Efecto() {
+
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public String getNombre() {
+        return nombre;
+    }
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+    public tipoEfecto getTipoEfecto() {
+        return tipoEfecto;
+    }
+    public void setTipoEfecto(tipoEfecto tipoEfecto) {
+        this.tipoEfecto = tipoEfecto;
+    }
+    public double getMultiplicador() {
+        return multiplicador;
+    }
+    public void setMultiplicador(double multiplicador) {
+        this.multiplicador = multiplicador;
+    }
+    public String getDescripcion() {
+        return descripcion;
+    }
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
 }
