@@ -1,21 +1,15 @@
 package com.example.Pokemon.Entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "pokemon")
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Pokemon {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nombre;
-    enum TipoPokemon {
+    public enum TipoPokemon {
         AGUA,
         FUEGO,
         PLANTA,
@@ -23,8 +17,7 @@ public class Pokemon {
         ELECTRICO
     }
     @Enumerated(EnumType.STRING)
-
-    private TipoPokemon tipoPokemon;
+    public TipoPokemon tipoPokemon;
 
     private Long vida;
     private Long ataque;
@@ -35,6 +28,10 @@ public class Pokemon {
     private Long idAtaque2;
 
     private Long idEfecto;
+    private int estado; // 1 - primera evolucion, 2 - segunda evolucion, 3 - ultima evolucion, 4 no evoluciona
+
+    @Lob
+    private byte[] sprite;
 
     public Long getId() {
         return id;
@@ -95,6 +92,18 @@ public class Pokemon {
     }
     public void setIdEfecto(Long idEfecto) {
         this.idEfecto = idEfecto;
+    }
+    public int getEstado() {
+        return estado;
+    }
+    public void setEstado(int estado) {
+        this.estado = estado;
+    }
+    public byte[] getSprite() {
+        return sprite;
+    }
+    public void setSprite(byte[] sprite) {
+        this.sprite = sprite;
     }
 
 }
