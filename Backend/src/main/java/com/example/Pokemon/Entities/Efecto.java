@@ -11,6 +11,7 @@ public class Efecto {
     private String nombre;
     enum tipoEfecto {
         DANO_CONTINUO,
+        SUBIR_VIDA,
         BAJAR_ATAQUE_RIVAL,
         BAJAR_DEFENSA_RIVAL,
         BAJAR_VELOCIDAD_RIVAL,

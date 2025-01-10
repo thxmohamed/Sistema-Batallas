@@ -1,5 +1,7 @@
 package com.example.Pokemon.Controllers;
 
+import com.example.Pokemon.DTO.AplicarEfectoRequest;
+import com.example.Pokemon.DTO.AtaqueRequest;
 import com.example.Pokemon.Entities.Ataque;
 import com.example.Pokemon.Entities.Efecto;
 import com.example.Pokemon.Entities.Pokemon;
@@ -96,5 +98,32 @@ public class PokemonController {
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         }
         return new ResponseEntity<>(efecto, HttpStatus.OK);
+    }
+
+    @PostMapping("/atacar")
+    public ResponseEntity<Pokemon> atacar(@RequestBody AtaqueRequest ataqueRequest) {
+        // Recuperar datos del request
+        Pokemon usuario = ataqueRequest.getUsuario();
+        Pokemon rival = ataqueRequest.getRival();
+        Ataque ataque = ataqueRequest.getAtaque();
+
+        // Lógica de ataque
+        rival = pokemonService.atacar(usuario, rival, ataque);
+
+        // Devolver el estado actualizado del Pokémon rival
+        return ResponseEntity.ok(rival);
+    }
+
+    @PostMapping("/aplicarEfecto")
+    public ResponseEntity<Pokemon> aplicarEfecto(@RequestBody AplicarEfectoRequest aplicarEfectoRequest) {
+        Pokemon usuario = aplicarEfectoRequest.getUsuario();
+        Pokemon rival = aplicarEfectoRequest.getRival();
+        Efecto efecto = aplicarEfectoRequest.getEfecto();
+
+        rival = pokemonService.aplicarEfecto(usuario, rival, efecto);
+        if(rival == null) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.ok(rival);
     }
 }

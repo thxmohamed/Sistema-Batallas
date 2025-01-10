@@ -1,4 +1,4 @@
-INSERT INTO ataque (nombre, tipoAtaque, potencia, descripcion) VALUES
+INSERT INTO ataque (nombre, tipo_ataque, potencia, descripcion) VALUES
 ('Pistola agua', 'AGUA', 40, 'Lanza un chorro de agua que daña ligeramente al enemigo.'),
 ('Hidropulso', 'AGUA', 65, 'Lanza una bola de agua que daña al enemigo.'),
 ('Cascada', 'AGUA', 80, 'Atrapa al enemigo en una cascada y lo golpea con fuerza.'),
@@ -29,7 +29,7 @@ INSERT INTO ataque (nombre, tipoAtaque, potencia, descripcion) VALUES
 ('Trueno', 'ELECTRICO', 110, 'Poderoso trueno que tiene un daño masivo.');
 
 
-INSERT INTO efecto (nombre, tipoEfecto, multiplicador, descripcion) VALUES
+INSERT INTO efecto (nombre, tipo_efecto, multiplicador, descripcion) VALUES
 ('Tóxico', 'DANO_CONTINUO', 0.1, 'Causa daño continuo al oponente cada turno, reduciendo su vida en un 10%.'),
 
 ('Danza Espada', 'SUBIR_ATAQUE_PROPIO', 1.3, 'Aumenta el ataque del Pokémon en un 30%.'),
@@ -48,6 +48,7 @@ INSERT INTO efecto (nombre, tipoEfecto, multiplicador, descripcion) VALUES
 ('Ojos llorosos', 'BAJAR_ATAQUE_RIVAL', 1/1.2, 'Baja el ataque del Pokémon rival en un 20%.'),
 ('Encanto', 'BAJAR_ATAQUE_RIVAL', 1/1.3, 'Baja el ataque del Pokémon rival en un 30%.'),
 
-('Cara susto', 'BAJAR_VELOCIDAD_RIVAL', 1/1.3, 'Baja la velocidad del Pokémon rival en un 30%.');
+('Cara susto', 'BAJAR_VELOCIDAD_RIVAL', 1/1.3, 'Baja la velocidad del Pokémon rival en un 30%.'),
+('Recuperación', 'SUBIR_VIDA', 0, 'Recupera 50 puntos de vida al usuario.');
 
 
