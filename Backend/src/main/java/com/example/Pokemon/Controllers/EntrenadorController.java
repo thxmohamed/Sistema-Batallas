@@ -1,6 +1,7 @@
 package com.example.Pokemon.Controllers;
 
 import com.example.Pokemon.Entities.Entrenador;
+import com.example.Pokemon.Entities.Pokemon;
 import com.example.Pokemon.Services.EntrenadorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,5 +33,12 @@ public class EntrenadorController {
     public ResponseEntity<Entrenador> createEntrenador(@RequestBody Entrenador entrenador) {
         Entrenador createdEntrenador = entrenadorService.createEntrenador(entrenador);
         return new ResponseEntity<>(createdEntrenador, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/pokemons/{id}")
+    public ResponseEntity<List<Pokemon>> getPokemonsByEntrenador(@PathVariable Long id) {
+        Entrenador entrenador = entrenadorService.findById(id);
+        List<Pokemon> pokemons = entrenadorService.getPokemonByEntrenador(entrenador);
+        return new ResponseEntity<>(pokemons, HttpStatus.OK);
     }
 }
