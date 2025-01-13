@@ -97,7 +97,6 @@ public class BatallaService {
         batalla.setTurno(batalla.getTurno() + 1);
 
         return batalla;
-
     }
 
 }

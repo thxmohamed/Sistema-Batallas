@@ -12,9 +12,9 @@ const create = data => {
     return httpClient.post("/batalla/create", data)
 }
 
-const combatir = data => {
+const combatir = (posAtacanteE1, posAtacanteE2, posAgredidoE1, posAgredidoE2, data) => {
     return httpClient.post(`/batalla/combate/${posAtacanteE1}/${posAtacanteE2}/${posAgredidoE1}/${posAgredidoE2}`, data)
-}
+  }
 
 export default {
     getAll,

@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import pokemonService from "../Services/pokemon.service";
+import batallaService from "../services/batalla.service";
+import "../App.css";
+
+const BattleView = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const { selectedTrainer1, selectedTrainer2 } = location.state || {};
+
+  if (!selectedTrainer1 || !selectedTrainer2) {
+    navigate("/setup");
+  }
+
+  const [pokemonDataTrainer1, setPokemonDataTrainer1] = useState([]);
+  const [pokemonDataTrainer2, setPokemonDataTrainer2] = useState([]);
+  const [attacksTrainer1, setAttacksTrainer1] = useState([]);
+  const [attacksTrainer2, setAttacksTrainer2] = useState([]);
+  
+  // Estado para las vidas de los Pokémon
+  const [livesTrainer1, setLivesTrainer1] = useState([0, 0, 0]);
+  const [livesTrainer2, setLivesTrainer2] = useState([0, 0, 0]);
+
+  const [vidaMaxE1, setVidaMaxE1] = useState([0, 0, 0]);
+  const [vidaMaxE2, setVidaMaxE2] = useState([0, 0, 0]);
+
+  const [selectedAttackerE1, setSelectedAttackerE1] = useState(null);
+  const [selectedAttackerE2, setSelectedAttackerE2] = useState(null);
+  const [selectedTargetE1, setSelectedTargetE1] = useState(null);
+  const [selectedTargetE2, setSelectedTargetE2] = useState(null);
+
+  const [turn, setTurn] = useState(1);
+
+  useEffect(() => {
+    Promise.all([
+      pokemonService.getById(selectedTrainer1.idPokemon1),
+      pokemonService.getById(selectedTrainer1.idPokemon2),
+      pokemonService.getById(selectedTrainer1.idPokemon3),
+    ]).then((responses) => {
+      setPokemonDataTrainer1(responses.map((response) => response.data));
+
+      const newLivesTrainer1 = responses.map((pokemon) => pokemon.data.vida);
+      setLivesTrainer1(newLivesTrainer1);
+      setVidaMaxE1(newLivesTrainer1);
+    });
+
+    Promise.all([
+      pokemonService.getById(selectedTrainer2.idPokemon1),
+      pokemonService.getById(selectedTrainer2.idPokemon2),
+      pokemonService.getById(selectedTrainer2.idPokemon3),
+    ]).then((responses) => {
+      setPokemonDataTrainer2(responses.map((response) => response.data));
+
+      const newLivesTrainer2 = responses.map((pokemon) => pokemon.data.vida);
+      setLivesTrainer2(newLivesTrainer2);
+      setVidaMaxE2(newLivesTrainer2);
+    });
+  }, [selectedTrainer1, selectedTrainer2]);
+
+  useEffect(() => {
+    if (pokemonDataTrainer1.length > 0) {
+      Promise.all(
+        pokemonDataTrainer1.map((pokemon) =>
+          pokemonService.getAtaques(pokemon.id)
+        )
+      ).then((responses) => {
+        setAttacksTrainer1(responses.map((response) => response.data));
+      });
+    }
+  }, [pokemonDataTrainer1]);
+
+  useEffect(() => {
+    if (pokemonDataTrainer2.length > 0) {
+      Promise.all(
+        pokemonDataTrainer2.map((pokemon) =>
+          pokemonService.getAtaques(pokemon.id)
+        )
+      ).then((responses) => {
+        setAttacksTrainer2(responses.map((response) => response.data));
+      });
+    }
+  }, [pokemonDataTrainer2]);
+
+  const handleAttack = () => {
+    if (
+      selectedAttackerE1 !== null &&
+      selectedAttackerE2 !== null &&
+      selectedTargetE1 !== null &&
+      selectedTargetE2 !== null
+    ) {
+      // Construimos el objeto DTO para la batalla
+      const batallaDTO = {
+        entrenador1: pokemonDataTrainer1,
+        entrenador2: pokemonDataTrainer2,
+        ataqueE1: attacksTrainer1[selectedAttackerE1][0], // Primer ataque del Pokémon seleccionado
+        ataqueE2: attacksTrainer2[selectedAttackerE2][0], // Primer ataque del Pokémon seleccionado
+        turno: turn,
+      };
+
+      console.log("DTO de la batalla:", batallaDTO);
+
+      // Llamamos al servicio con las posiciones y la vida actualizada
+      batallaService
+        .combatir(selectedAttackerE1, selectedAttackerE2, selectedTargetE1, selectedTargetE2, batallaDTO)
+        .then((response) => {
+          setTurn((prevTurn) => prevTurn + 1);
+
+          const newLivesTrainer1 = response.data.entrenador1.map((pokemon) => pokemon.vida);
+          setLivesTrainer1(newLivesTrainer1);
+          const newLivesTrainer2 = response.data.entrenador2.map((pokemon) => pokemon.vida);
+          setLivesTrainer2(newLivesTrainer2);
+
+          console.log("vidas actualizadas:", newLivesTrainer1, newLivesTrainer2);
+        })
+        .catch((error) => {
+          console.error("Error al combatir:", error);
+        });
+    } else {
+      alert("Por favor, selecciona todos los Pokémon para atacar.");
+    }
+  };
+
+  if (pokemonDataTrainer1.length === 0 || pokemonDataTrainer2.length === 0) {
+    return <p>Cargando información de Pokémon...</p>;
+  }
+
+  return (
+    <div>
+      <h1>Simulación de Combate - Turno {turn}</h1>
+
+      <div className="battle-container">
+        {/* Entrenador 1 */}
+        <div className="trainer-container">
+          <h2>{selectedTrainer1.nombre}</h2>
+          <div className="pokemon-list">
+            {pokemonDataTrainer1.map((pokemon, index) => (
+              <div key={pokemon.id} className="pokemon-card">
+                <img
+                  src={`data:image/png;base64,${pokemon.sprite}`}
+                  alt={pokemon.nombre}
+                />
+                <p>{pokemon.nombre} - Vida: {livesTrainer1[index]} / {vidaMaxE1[index]}</p>
+                <ul>
+                  {attacksTrainer1[index]?.map((ataque) => (
+                    <li
+                      key={ataque.id}
+                      onClick={() => {
+                        setSelectedAttackerE1(index);
+                      }}
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          selectedAttackerE1 === index ? "lightblue" : "",
+                      }}
+                    >
+                      {ataque.nombre}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Entrenador 2 */}
+        <div className="trainer-container">
+          <h2>{selectedTrainer2.nombre}</h2>
+          <div className="pokemon-list">
+            {pokemonDataTrainer2.map((pokemon, index) => (
+              <div key={pokemon.id} className="pokemon-card">
+                <img
+                  src={`data:image/png;base64,${pokemon.sprite}`}
+                  alt={pokemon.nombre}
+                />
+                <p>{pokemon.nombre} - Vida: {livesTrainer2[index]} / {vidaMaxE2[index]}</p>
+                <ul>
+                  {attacksTrainer2[index]?.map((ataque) => (
+                    <li
+                      key={ataque.id}
+                      onClick={() => {
+                        setSelectedAttackerE2(index);
+                      }}
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          selectedAttackerE2 === index ? "lightblue" : "",
+                      }}
+                    >
+                      {ataque.nombre}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Selecciona el objetivo del ataque:</h2>
+
+        <div>
+          {pokemonDataTrainer1.map((pokemon, index) => (
+            <button
+              key={pokemon.id}
+              onClick={() => setSelectedTargetE2(index)}
+              style={{
+                backgroundColor: selectedTargetE2 === index ? "lightgreen" : "",
+              }}
+            >
+              {pokemon.nombre}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          {pokemonDataTrainer2.map((pokemon, index) => (
+            <button
+              key={pokemon.id}
+              onClick={() => setSelectedTargetE1(index)}
+              style={{
+                backgroundColor: selectedTargetE1 === index ? "lightgreen" : "",
+              }}
+            >
+              {pokemon.nombre}
+            </button>
+          ))}
+        </div>
+
+
+      </div>
+
+      <button onClick={handleAttack}>Realizar Ataque</button>
+      <button onClick={() => navigate("/setup")}>Volver a la selección</button>
+    </div>
+  );
+};
+
+export default BattleView;
