@@ -8,12 +8,19 @@ const CrearEntrenador = () => {
   const [selectedPokemons, setSelectedPokemons] = useState([]);
   const [trainerName, setTrainerName] = useState("");
   const [pokemonDetails, setPokemonDetails] = useState(null);
+  const [tipoFiltro, setTipoFiltro] = useState(""); // Nuevo estado para el tipo de filtro
+  const [tiposDisponibles, setTiposDisponibles] = useState(["AGUA", "FUEGO", "PLANTA", "TIERRA", "ELECTRICO"]); // Tipos disponibles
 
-  // Fetch all Pokémon on component mount
+  // Fetch all Pokémon or filter by type
   useEffect(() => {
     const fetchPokemons = async () => {
       try {
-        const response = await pokemonService.getAll();
+        let response;
+        if (tipoFiltro) {
+          response = await pokemonService.getByTipo(tipoFiltro); // Filtrar por tipo
+        } else {
+          response = await pokemonService.getAll(); // Obtener todos los Pokémon
+        }
         setPokemons(response.data);
       } catch (error) {
         console.error("Error al obtener los Pokémon:", error);
@@ -21,7 +28,7 @@ const CrearEntrenador = () => {
     };
 
     fetchPokemons();
-  }, []);
+  }, [tipoFiltro]); // Dependencia en tipoFiltro
 
   // Handle Pokémon selection
   const togglePokemonSelection = (pokemonId) => {
@@ -39,6 +46,8 @@ const CrearEntrenador = () => {
     try {
       const response = await pokemonService.getById(id);
       const attacks = await pokemonService.getAtaques(id);
+      const efecto = await pokemonService.getEfecto(id);
+
       setPokemonDetails({
         ...response.data,
         attacks: attacks.data,
@@ -92,6 +101,19 @@ const CrearEntrenador = () => {
       </div>
 
       <h2>Selecciona 3 Pokémon</h2>
+      {/* Filtro de tipo de Pokémon */}
+      <div>
+        <label>Filtrar por tipo:</label>
+        <select onChange={(e) => setTipoFiltro(e.target.value)} value={tipoFiltro}>
+          <option value="">Todos</option>
+          {tiposDisponibles.map((tipo) => (
+            <option key={tipo} value={tipo}>
+              {tipo}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="pokemon-list">
         {pokemons.map((pokemon) => (
           <div key={pokemon.id} className="pokemon-card">
@@ -102,12 +124,12 @@ const CrearEntrenador = () => {
             />
             <h3>{pokemon.nombre}</h3>
             <p>Tipo: {pokemon.tipoPokemon}</p>
-            <button className="button" onClick={() => showDetails(pokemon.id)}>Ver Detalles</button>
+            <button className="button" onClick={() => showDetails(pokemon.id)}>
+              Ver Detalles
+            </button>
             <button
               onClick={() => togglePokemonSelection(pokemon.id)}
-              className={
-                selectedPokemons.includes(pokemon.id) ? "selected" : ""
-              }
+              className={selectedPokemons.includes(pokemon.id) ? "selected" : ""}
             >
               {selectedPokemons.includes(pokemon.id) ? "Seleccionado" : "Seleccionar"}
             </button>
@@ -116,19 +138,24 @@ const CrearEntrenador = () => {
       </div>
 
       {pokemonDetails && (
-        <div className="pokemon-details">
-          <h2>Detalles de {pokemonDetails.nombre}</h2>
-          <p>Vida: {pokemonDetails.vida}</p>
-          <p>Ataque: {pokemonDetails.ataque}</p>
-          <p>Defensa: {pokemonDetails.defensa}</p>
-          <p>Velocidad: {pokemonDetails.velocidad}</p>
-          <h3>Ataques:</h3>
-          <ul>
-            {pokemonDetails.attacks.map((attack) => (
-              <li key={attack.id}>{attack.nombre} - {attack.tipo}</li>
-            ))}
-          </ul>
-          <button onClick={() => setPokemonDetails(null)}>Cerrar</button>
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Detalles de {pokemonDetails.nombre}</h2>
+            <p>Vida: {pokemonDetails.vida}</p>
+            <p>Ataque: {pokemonDetails.ataque}</p>
+            <p>Defensa: {pokemonDetails.defensa}</p>
+            <p>Velocidad: {pokemonDetails.velocidad}</p>
+            <h3>Ataques:</h3>
+            <ul>
+              {pokemonDetails.attacks.map((attack) => (
+                <li key={attack.id}>
+                  {attack.nombre} - {attack.tipoAtaque} <br />
+                  <strong>Descripción:</strong> {attack.descripcion} {/* Mostrar la descripción */}
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => setPokemonDetails(null)}>Cerrar</button>
+          </div>
         </div>
       )}
 

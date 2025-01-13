@@ -126,4 +126,9 @@ public class PokemonController {
         }
         return ResponseEntity.ok(rival);
     }
+
+    @GetMapping("/tipo/{tipo}")
+    public List<Pokemon> obtenerPokemonPorTipo(@PathVariable Pokemon.TipoPokemon tipo) {
+        return pokemonService.obtenerPokemonPorTipo(tipo);
+    }
 }

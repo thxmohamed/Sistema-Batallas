@@ -32,6 +32,7 @@ const CrearPokemon = () => {
     Object.entries(formData).forEach(([key, value]) => {
       const isNumber = !isNaN(value) && key !== "sprite";
       data.append(key, isNumber ? Number(value) : value);
+      console.log("hola")
       console.log(key, value);
       
     });

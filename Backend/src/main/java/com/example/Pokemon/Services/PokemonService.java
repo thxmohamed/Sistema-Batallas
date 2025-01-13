@@ -185,5 +185,8 @@ public class PokemonService {
         }
     }
 
+    public List<Pokemon> obtenerPokemonPorTipo(Pokemon.TipoPokemon tipoPokemon) {
+        return pokemonRepository.findByTipoPokemon(tipoPokemon);
+    }
 
 }

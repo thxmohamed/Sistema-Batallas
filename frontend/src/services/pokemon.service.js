@@ -36,6 +36,10 @@ const aplicarEfecto = data => {
     return httpClient.post("/pokemon/aplicarEfecto", data)
 }
 
+const getByTipo = tipo => {
+    return httpClient.get(`/pokemon/tipo/${tipo}`)
+}
+
 export default {
     getAll,
     getById, 
@@ -44,5 +48,6 @@ export default {
     getAtaques, 
     getEfecto,
     atacar, 
-    aplicarEfecto
+    aplicarEfecto,
+    getByTipo
 }
