@@ -18,8 +18,7 @@ const BattleView = () => {
   const [pokemonDataTrainer2, setPokemonDataTrainer2] = useState([]);
   const [attacksTrainer1, setAttacksTrainer1] = useState([]);
   const [attacksTrainer2, setAttacksTrainer2] = useState([]);
-  
-  // Estado para las vidas de los Pokémon
+
   const [livesTrainer1, setLivesTrainer1] = useState([0, 0, 0]);
   const [livesTrainer2, setLivesTrainer2] = useState([0, 0, 0]);
 
@@ -32,6 +31,7 @@ const BattleView = () => {
   const [selectedTargetE2, setSelectedTargetE2] = useState(null);
 
   const [turn, setTurn] = useState(1);
+  const [DTO, setDTO] = useState({});
 
   useEffect(() => {
     Promise.all([
@@ -90,10 +90,43 @@ const BattleView = () => {
       selectedTargetE1 !== null &&
       selectedTargetE2 !== null
     ) {
-      // Construimos el objeto DTO para la batalla
+      // Verificar si el Pokémon atacante tiene vida > 0
+      if (livesTrainer1[selectedAttackerE1] <= 0) {
+        alert(`¡El Pokémon ${pokemonDataTrainer1[selectedAttackerE1].nombre} está debilitado y no puede atacar!`);
+        return;
+      }
+
+      if (livesTrainer2[selectedAttackerE2] <= 0) {
+        alert(`¡El Pokémon ${pokemonDataTrainer2[selectedAttackerE2].nombre} está debilitado y no puede atacar!`);
+        return;
+      }
+
+      // Verificar si el Pokémon objetivo tiene vida > 0
+      if (livesTrainer1[selectedTargetE2] <= 0) {
+        alert(`¡El Pokémon ${pokemonDataTrainer1[selectedTargetE2].nombre} ya está debilitado y no puede ser atacado!`);
+        return;
+      }
+
+      if (livesTrainer2[selectedTargetE1] <= 0) {
+        alert(`¡El Pokémon ${pokemonDataTrainer2[selectedTargetE1].nombre} ya está debilitado y no puede ser atacado!`);
+        return;
+      }
+
+      // Actualizamos las vidas directamente dentro de los objetos de cada Pokémon
+      const updatedEntrenador1 = pokemonDataTrainer1.map((pokemon, index) => ({
+        ...pokemon,
+        vida: livesTrainer1[index], // Actualizamos la vida de cada Pokémon de entrenador 1
+      }));
+
+      const updatedEntrenador2 = pokemonDataTrainer2.map((pokemon, index) => ({
+        ...pokemon,
+        vida: livesTrainer2[index], // Actualizamos la vida de cada Pokémon de entrenador 2
+      }));
+
+      // Construimos el objeto DTO para la batalla con los Pokémon y sus vidas actualizadas
       const batallaDTO = {
-        entrenador1: pokemonDataTrainer1,
-        entrenador2: pokemonDataTrainer2,
+        entrenador1: updatedEntrenador1, // Entrenador 1 con las vidas actualizadas
+        entrenador2: updatedEntrenador2, // Entrenador 2 con las vidas actualizadas
         ataqueE1: attacksTrainer1[selectedAttackerE1][0], // Primer ataque del Pokémon seleccionado
         ataqueE2: attacksTrainer2[selectedAttackerE2][0], // Primer ataque del Pokémon seleccionado
         turno: turn,
@@ -101,9 +134,18 @@ const BattleView = () => {
 
       console.log("DTO de la batalla:", batallaDTO);
 
+      // Actualizamos el estado con el DTO actualizado antes de enviar el combate
+      setDTO(batallaDTO);
+
       // Llamamos al servicio con las posiciones y la vida actualizada
       batallaService
-        .combatir(selectedAttackerE1, selectedAttackerE2, selectedTargetE1, selectedTargetE2, batallaDTO)
+        .combatir(
+          selectedAttackerE1,
+          selectedAttackerE2,
+          selectedTargetE2,
+          selectedTargetE1,
+          batallaDTO // Pasamos el DTO actualizado con las vidas
+        )
         .then((response) => {
           setTurn((prevTurn) => prevTurn + 1);
 
@@ -113,6 +155,18 @@ const BattleView = () => {
           setLivesTrainer2(newLivesTrainer2);
 
           console.log("vidas actualizadas:", newLivesTrainer1, newLivesTrainer2);
+
+          // Verificar si algún entrenador ha perdido (todos sus Pokémon tienen vida 0)
+          const isTrainer1Lost = newLivesTrainer1.every((vida) => vida === 0);
+          const isTrainer2Lost = newLivesTrainer2.every((vida) => vida === 0);
+
+          if (isTrainer1Lost) {
+            alert(`${selectedTrainer2.nombre} ha ganado el combate!`);
+            navigate("/"); // O redirigir a la página de inicio o de configuración
+          } else if (isTrainer2Lost) {
+            alert(`${selectedTrainer1.nombre} ha ganado el combate!`);
+            navigate("/"); // O redirigir a la página de inicio o de configuración
+          }
         })
         .catch((error) => {
           console.error("Error al combatir:", error);
@@ -142,23 +196,23 @@ const BattleView = () => {
                   alt={pokemon.nombre}
                 />
                 <p>{pokemon.nombre} - Vida: {livesTrainer1[index]} / {vidaMaxE1[index]}</p>
-                <ul>
+                <div>
                   {attacksTrainer1[index]?.map((ataque) => (
-                    <li
+                    <button
                       key={ataque.id}
                       onClick={() => {
                         setSelectedAttackerE1(index);
                       }}
                       style={{
-                        cursor: "pointer",
                         backgroundColor:
                           selectedAttackerE1 === index ? "lightblue" : "",
+                        margin: "5px",
                       }}
                     >
                       {ataque.nombre}
-                    </li>
+                    </button>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
@@ -175,23 +229,23 @@ const BattleView = () => {
                   alt={pokemon.nombre}
                 />
                 <p>{pokemon.nombre} - Vida: {livesTrainer2[index]} / {vidaMaxE2[index]}</p>
-                <ul>
+                <div>
                   {attacksTrainer2[index]?.map((ataque) => (
-                    <li
+                    <button
                       key={ataque.id}
                       onClick={() => {
                         setSelectedAttackerE2(index);
                       }}
                       style={{
-                        cursor: "pointer",
                         backgroundColor:
                           selectedAttackerE2 === index ? "lightblue" : "",
+                        margin: "5px",
                       }}
                     >
                       {ataque.nombre}
-                    </li>
+                    </button>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
@@ -228,8 +282,6 @@ const BattleView = () => {
             </button>
           ))}
         </div>
-
-
       </div>
 
       <button onClick={handleAttack}>Realizar Ataque</button>
