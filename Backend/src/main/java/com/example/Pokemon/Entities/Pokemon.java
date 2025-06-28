@@ -22,7 +22,6 @@ public class Pokemon {
     private Long vida;
     private Long ataque;
     private Long defensa;
-    private Long velocidad;
 
     private Long idAtaque1;
     private Long idAtaque2;
@@ -68,12 +67,6 @@ public class Pokemon {
     }
     public void setDefensa(Long defensa) {
         this.defensa = defensa;
-    }
-    public Long getVelocidad() {
-        return velocidad;
-    }
-    public void setVelocidad(Long velocidad) {
-        this.velocidad = velocidad;
     }
     public Long getIdAtaque1() {
         return idAtaque1;

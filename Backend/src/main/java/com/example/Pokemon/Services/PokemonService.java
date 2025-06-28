@@ -156,10 +156,6 @@ public class PokemonService {
                 usuario.setDefensa((long) (usuario.getDefensa() * efecto.getMultiplicador()));
                 return usuario;
 
-            case "SUBIR_VELOCIDAD_PROPIO":
-                usuario.setVelocidad((long) (usuario.getVelocidad() * efecto.getMultiplicador()));
-                return usuario;
-
             case "SUBIR_VIDA":
                 long vidaNueva = Math.min(usuario.getVida() + 50, vidaMaxUsuario); // Valor fijo de 50 puntos
                 usuario.setVida(vidaNueva);
@@ -171,12 +167,6 @@ public class PokemonService {
 
             case "BAJAR_ATAQUE_RIVAL":
                 rival.setAtaque((long) (rival.getAtaque() * efecto.getMultiplicador()));
-                return rival;
-
-            case "BAJAR_VELOCIDAD_RIVAL":
-                if (rival != null) {
-                    rival.setVelocidad((long) (rival.getVelocidad() * efecto.getMultiplicador()));
-                }
                 return rival;
 
             default:

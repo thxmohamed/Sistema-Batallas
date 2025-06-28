@@ -40,6 +40,10 @@ const getByTipo = tipo => {
     return httpClient.get(`/pokemon/tipo/${tipo}`)
 }
 
+const getAllAtaques = () => {
+    return httpClient.get('/ataque/')
+}
+
 export default {
     getAll,
     getById, 
@@ -49,5 +53,6 @@ export default {
     getEfecto,
     atacar, 
     aplicarEfecto,
-    getByTipo
+    getByTipo,
+    getAllAtaques
 }

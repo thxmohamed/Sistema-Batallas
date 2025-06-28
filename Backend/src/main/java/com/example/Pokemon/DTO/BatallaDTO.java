@@ -11,8 +11,11 @@ public class BatallaDTO {
     List<Pokemon> entrenador2;
     Ataque ataqueE1;
     Ataque ataqueE2;
-    //Efecto efectoE1;
-    //Efecto efectoE2;
+    Efecto efectoE1;
+    Efecto efectoE2;
+    // Campos para indicar si usar ataque o efecto
+    boolean usarEfectoE1; // true = usar efecto, false = usar ataque
+    boolean usarEfectoE2; // true = usar efecto, false = usar ataque
     int turno;
 
     public List<Pokemon> getEntrenador1(){
@@ -39,7 +42,7 @@ public class BatallaDTO {
     public void setataqueE2(Ataque ataqueE2){
         this.ataqueE2 = ataqueE2;
     }
-    /*
+    
     public Efecto getEfectoE1(){
         return efectoE1;
     }
@@ -52,8 +55,20 @@ public class BatallaDTO {
     public void setEfectoE2(Efecto efectoE2){
         this.efectoE2 = efectoE2;
     }
+    
+    public boolean isUsarEfectoE1(){
+        return usarEfectoE1;
+    }
+    public void setUsarEfectoE1(boolean usarEfectoE1){
+        this.usarEfectoE1 = usarEfectoE1;
+    }
+    public boolean isUsarEfectoE2(){
+        return usarEfectoE2;
+    }
+    public void setUsarEfectoE2(boolean usarEfectoE2){
+        this.usarEfectoE2 = usarEfectoE2;
+    }
 
-     */
     public int getTurno(){
         return turno;
     }

@@ -18,10 +18,11 @@ const BattleView = () => {
   const [pokemonDataTrainer2, setPokemonDataTrainer2] = useState([]);
   const [attacksTrainer1, setAttacksTrainer1] = useState([]);
   const [attacksTrainer2, setAttacksTrainer2] = useState([]);
+  const [effectsTrainer1, setEffectsTrainer1] = useState([]);
+  const [effectsTrainer2, setEffectsTrainer2] = useState([]);
 
   const [livesTrainer1, setLivesTrainer1] = useState([0, 0, 0]);
   const [livesTrainer2, setLivesTrainer2] = useState([0, 0, 0]);
-
   const [vidaMaxE1, setVidaMaxE1] = useState([0, 0, 0]);
   const [vidaMaxE2, setVidaMaxE2] = useState([0, 0, 0]);
 
@@ -30,264 +31,616 @@ const BattleView = () => {
   const [selectedTargetE1, setSelectedTargetE1] = useState(null);
   const [selectedTargetE2, setSelectedTargetE2] = useState(null);
 
+  const [useEffectE1, setUseEffectE1] = useState(false);
+  const [useEffectE2, setUseEffectE2] = useState(false);
+
   const [turn, setTurn] = useState(1);
-  const [DTO, setDTO] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [battleInProgress, setBattleInProgress] = useState(false);
+  const [battleLog, setBattleLog] = useState([]);
+  const [winner, setWinner] = useState(null);
+
+  // Current team based on turn
+  const currentTeam = turn % 2 === 1 ? 1 : 2;
+  const isTeam1Turn = currentTeam === 1;
 
   useEffect(() => {
-    Promise.all([
-      pokemonService.getById(selectedTrainer1.idPokemon1),
-      pokemonService.getById(selectedTrainer1.idPokemon2),
-      pokemonService.getById(selectedTrainer1.idPokemon3),
-    ]).then((responses) => {
-      setPokemonDataTrainer1(responses.map((response) => response.data));
+    const initializeBattle = async () => {
+      try {
+        // Load Pokemon data for trainer 1
+        const responses1 = await Promise.all([
+          pokemonService.getById(selectedTrainer1.idPokemon1),
+          pokemonService.getById(selectedTrainer1.idPokemon2),
+          pokemonService.getById(selectedTrainer1.idPokemon3),
+        ]);
+        
+        const pokemonData1 = responses1.map((response) => response.data);
+        setPokemonDataTrainer1(pokemonData1);
+        
+        const newLivesTrainer1 = pokemonData1.map((pokemon) => pokemon.vida);
+        setLivesTrainer1(newLivesTrainer1);
+        setVidaMaxE1(newLivesTrainer1);
 
-      const newLivesTrainer1 = responses.map((pokemon) => pokemon.data.vida);
-      setLivesTrainer1(newLivesTrainer1);
-      setVidaMaxE1(newLivesTrainer1);
-    });
+        // Load Pokemon data for trainer 2
+        const responses2 = await Promise.all([
+          pokemonService.getById(selectedTrainer2.idPokemon1),
+          pokemonService.getById(selectedTrainer2.idPokemon2),
+          pokemonService.getById(selectedTrainer2.idPokemon3),
+        ]);
+        
+        const pokemonData2 = responses2.map((response) => response.data);
+        setPokemonDataTrainer2(pokemonData2);
+        
+        const newLivesTrainer2 = pokemonData2.map((pokemon) => pokemon.vida);
+        setLivesTrainer2(newLivesTrainer2);
+        setVidaMaxE2(newLivesTrainer2);
 
-    Promise.all([
-      pokemonService.getById(selectedTrainer2.idPokemon1),
-      pokemonService.getById(selectedTrainer2.idPokemon2),
-      pokemonService.getById(selectedTrainer2.idPokemon3),
-    ]).then((responses) => {
-      setPokemonDataTrainer2(responses.map((response) => response.data));
+        // Load attacks for trainer 1
+        const attackResponses1 = await Promise.all(
+          pokemonData1.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+        );
+        setAttacksTrainer1(attackResponses1.map((response) => response.data));
 
-      const newLivesTrainer2 = responses.map((pokemon) => pokemon.data.vida);
-      setLivesTrainer2(newLivesTrainer2);
-      setVidaMaxE2(newLivesTrainer2);
-    });
+        // Load attacks for trainer 2
+        const attackResponses2 = await Promise.all(
+          pokemonData2.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+        );
+        setAttacksTrainer2(attackResponses2.map((response) => response.data));
+
+        // Load effects for trainer 1
+        const effectResponses1 = await Promise.all(
+          pokemonData1.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+        );
+        setEffectsTrainer1(effectResponses1.map((response) => response.data));
+
+        // Load effects for trainer 2
+        const effectResponses2 = await Promise.all(
+          pokemonData2.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+        );
+        setEffectsTrainer2(effectResponses2.map((response) => response.data));
+
+        setBattleLog([
+          `¡La batalla entre ${selectedTrainer1.nombre} y ${selectedTrainer2.nombre} ha comenzado!`,
+          `${selectedTrainer1.nombre} inicia el combate.`
+        ]);
+        
+      } catch (error) {
+        console.error("Error al inicializar la batalla:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeBattle();
   }, [selectedTrainer1, selectedTrainer2]);
 
-  useEffect(() => {
-    if (pokemonDataTrainer1.length > 0) {
-      Promise.all(
-        pokemonDataTrainer1.map((pokemon) =>
-          pokemonService.getAtaques(pokemon.id)
-        )
-      ).then((responses) => {
-        setAttacksTrainer1(responses.map((response) => response.data));
-      });
+  const handlePokemonAction = (trainerTeam, pokemonIndex, useEffect) => {
+    if (trainerTeam === 1) {
+      setSelectedAttackerE1(pokemonIndex);
+      setUseEffectE1(useEffect);
+      if (useEffect !== useEffectE1) {
+        setSelectedTargetE1(null);
+      }
+    } else {
+      setSelectedAttackerE2(pokemonIndex);
+      setUseEffectE2(useEffect);
+      if (useEffect !== useEffectE2) {
+        setSelectedTargetE2(null);
+      }
     }
-  }, [pokemonDataTrainer1]);
+  };
 
-  useEffect(() => {
-    if (pokemonDataTrainer2.length > 0) {
-      Promise.all(
-        pokemonDataTrainer2.map((pokemon) =>
-          pokemonService.getAtaques(pokemon.id)
-        )
-      ).then((responses) => {
-        setAttacksTrainer2(responses.map((response) => response.data));
-      });
+  const handleTargetSelection = (targetTeam, targetIndex) => {
+    if (isTeam1Turn) {
+      setSelectedTargetE1(targetIndex);
+    } else {
+      setSelectedTargetE2(targetIndex);
     }
-  }, [pokemonDataTrainer2]);
+  };
 
-  const handleAttack = () => {
-    if (
-      selectedAttackerE1 !== null &&
-      selectedAttackerE2 !== null &&
-      selectedTargetE1 !== null &&
-      selectedTargetE2 !== null
-    ) {
-      // Verificar si el Pokémon atacante tiene vida > 0
-      if (livesTrainer1[selectedAttackerE1] <= 0) {
-        alert(`¡El Pokémon ${pokemonDataTrainer1[selectedAttackerE1].nombre} está debilitado y no puede atacar!`);
-        return;
-      }
+  const canExecuteAction = () => {
+    if (isTeam1Turn) {
+      return selectedAttackerE1 !== null && 
+             (useEffectE1 || selectedTargetE1 !== null) &&
+             livesTrainer1[selectedAttackerE1] > 0;
+    } else {
+      return selectedAttackerE2 !== null && 
+             (useEffectE2 || selectedTargetE2 !== null) &&
+             livesTrainer2[selectedAttackerE2] > 0;
+    }
+  };
 
-      if (livesTrainer2[selectedAttackerE2] <= 0) {
-        alert(`¡El Pokémon ${pokemonDataTrainer2[selectedAttackerE2].nombre} está debilitado y no puede atacar!`);
-        return;
-      }
+  const executeAction = async () => {
+    if (!canExecuteAction()) {
+      return;
+    }
 
-      // Verificar si el Pokémon objetivo tiene vida > 0
-      if (livesTrainer1[selectedTargetE2] <= 0) {
-        alert(`¡El Pokémon ${pokemonDataTrainer1[selectedTargetE2].nombre} ya está debilitado y no puede ser atacado!`);
-        return;
-      }
+    setBattleInProgress(true);
 
-      if (livesTrainer2[selectedTargetE1] <= 0) {
-        alert(`¡El Pokémon ${pokemonDataTrainer2[selectedTargetE1].nombre} ya está debilitado y no puede ser atacado!`);
-        return;
-      }
-
-      // Actualizamos las vidas directamente dentro de los objetos de cada Pokémon
+    try {
+      // Update Pokemon lives in the data
       const updatedEntrenador1 = pokemonDataTrainer1.map((pokemon, index) => ({
         ...pokemon,
-        vida: livesTrainer1[index], // Actualizamos la vida de cada Pokémon de entrenador 1
+        vida: livesTrainer1[index],
       }));
 
       const updatedEntrenador2 = pokemonDataTrainer2.map((pokemon, index) => ({
         ...pokemon,
-        vida: livesTrainer2[index], // Actualizamos la vida de cada Pokémon de entrenador 2
+        vida: livesTrainer2[index],
       }));
 
-      // Construimos el objeto DTO para la batalla con los Pokémon y sus vidas actualizadas
       const batallaDTO = {
-        entrenador1: updatedEntrenador1, // Entrenador 1 con las vidas actualizadas
-        entrenador2: updatedEntrenador2, // Entrenador 2 con las vidas actualizadas
-        ataqueE1: attacksTrainer1[selectedAttackerE1][0], // Primer ataque del Pokémon seleccionado
-        ataqueE2: attacksTrainer2[selectedAttackerE2][0], // Primer ataque del Pokémon seleccionado
+        entrenador1: updatedEntrenador1,
+        entrenador2: updatedEntrenador2,
+        ataqueE1: useEffectE1 ? null : (attacksTrainer1[selectedAttackerE1] ? attacksTrainer1[selectedAttackerE1][0] : null),
+        ataqueE2: useEffectE2 ? null : (attacksTrainer2[selectedAttackerE2] ? attacksTrainer2[selectedAttackerE2][0] : null),
+        efectoE1: useEffectE1 ? effectsTrainer1[selectedAttackerE1] : null,
+        efectoE2: useEffectE2 ? effectsTrainer2[selectedAttackerE2] : null,
+        usarEfectoE1: useEffectE1,
+        usarEfectoE2: useEffectE2,
         turno: turn,
       };
 
-      console.log("DTO de la batalla:", batallaDTO);
+      const response = await batallaService.combatir(
+        selectedAttackerE1 || 0,
+        selectedAttackerE2 || 0,
+        selectedTargetE2 || 0,
+        selectedTargetE1 || 0,
+        batallaDTO
+      );
 
-      // Actualizamos el estado con el DTO actualizado antes de enviar el combate
-      setDTO(batallaDTO);
+      // Update lives
+      const newLivesTrainer1 = response.data.entrenador1.map((pokemon) => pokemon.vida);
+      const newLivesTrainer2 = response.data.entrenador2.map((pokemon) => pokemon.vida);
+      
+      setLivesTrainer1(newLivesTrainer1);
+      setLivesTrainer2(newLivesTrainer2);
 
-      // Llamamos al servicio con las posiciones y la vida actualizada
-      batallaService
-        .combatir(
-          selectedAttackerE1,
-          selectedAttackerE2,
-          selectedTargetE2,
-          selectedTargetE1,
-          batallaDTO // Pasamos el DTO actualizado con las vidas
-        )
-        .then((response) => {
-          setTurn((prevTurn) => prevTurn + 1);
+      // Add to battle log
+      const currentTrainer = isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre;
+      const action = isTeam1Turn ? 
+        (useEffectE1 ? `usó ${effectsTrainer1[selectedAttackerE1]?.nombre}` : `atacó con ${attacksTrainer1[selectedAttackerE1]?.[0]?.nombre}`) :
+        (useEffectE2 ? `usó ${effectsTrainer2[selectedAttackerE2]?.nombre}` : `atacó con ${attacksTrainer2[selectedAttackerE2]?.[0]?.nombre}`);
+      
+      setBattleLog(prev => [...prev, `Turno ${turn}: ${currentTrainer} ${action}`]);
 
-          const newLivesTrainer1 = response.data.entrenador1.map((pokemon) => pokemon.vida);
-          setLivesTrainer1(newLivesTrainer1);
-          const newLivesTrainer2 = response.data.entrenador2.map((pokemon) => pokemon.vida);
-          setLivesTrainer2(newLivesTrainer2);
+      // Check for winner
+      const isTrainer1Lost = newLivesTrainer1.every((vida) => vida <= 0);
+      const isTrainer2Lost = newLivesTrainer2.every((vida) => vida <= 0);
 
-          console.log("vidas actualizadas:", newLivesTrainer1, newLivesTrainer2);
+      if (isTrainer1Lost || isTrainer2Lost) {
+        const winnerTrainer = isTrainer1Lost ? selectedTrainer2.nombre : selectedTrainer1.nombre;
+        setWinner(winnerTrainer);
+        setBattleLog(prev => [...prev, `¡${winnerTrainer} ha ganado la batalla!`]);
+      } else {
+        setTurn(turn + 1);
+      }
 
-          // Verificar si algún entrenador ha perdido (todos sus Pokémon tienen vida 0)
-          const isTrainer1Lost = newLivesTrainer1.every((vida) => vida === 0);
-          const isTrainer2Lost = newLivesTrainer2.every((vida) => vida === 0);
+      // Reset selections
+      setSelectedAttackerE1(null);
+      setSelectedAttackerE2(null);
+      setSelectedTargetE1(null);
+      setSelectedTargetE2(null);
+      setUseEffectE1(false);
+      setUseEffectE2(false);
 
-          if (isTrainer1Lost) {
-            alert(`${selectedTrainer2.nombre} ha ganado el combate!`);
-            navigate("/"); // O redirigir a la página de inicio o de configuración
-          } else if (isTrainer2Lost) {
-            alert(`${selectedTrainer1.nombre} ha ganado el combate!`);
-            navigate("/"); // O redirigir a la página de inicio o de configuración
-          }
-        })
-        .catch((error) => {
-          console.error("Error al combatir:", error);
-        });
-    } else {
-      alert("Por favor, selecciona todos los Pokémon para atacar.");
+    } catch (error) {
+      console.error("Error durante la batalla:", error);
+      setBattleLog(prev => [...prev, "Error durante la batalla"]);
+    } finally {
+      setBattleInProgress(false);
     }
   };
 
-  if (pokemonDataTrainer1.length === 0 || pokemonDataTrainer2.length === 0) {
-    return <p>Cargando información de Pokémon...</p>;
+  const resetBattle = () => {
+    navigate("/setup");
+  };
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Preparando la batalla...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (winner) {
+    return (
+      <div className="page-container">
+        <div className="victory-screen">
+          <div className="victory-content">
+            <h1 className="victory-title">🏆 ¡VICTORIA! 🏆</h1>
+            <h2 className="winner-name">{winner}</h2>
+            <p className="victory-message">¡Ha ganado la batalla épica!</p>
+            
+            <div className="battle-summary">
+              <h3>Resumen de la Batalla</h3>
+              <div className="final-stats">
+                <div className="trainer-final-stats">
+                  <h4>{selectedTrainer1.nombre}</h4>
+                  <div className="pokemon-final-lives">
+                    {pokemonDataTrainer1.map((pokemon, index) => (
+                      <div key={pokemon.id} className="pokemon-final-stat">
+                        <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
+                        <span className={livesTrainer1[index] > 0 ? 'alive' : 'fainted'}>
+                          {pokemon.nombre}: {livesTrainer1[index]}/{vidaMaxE1[index]} HP
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="trainer-final-stats">
+                  <h4>{selectedTrainer2.nombre}</h4>
+                  <div className="pokemon-final-lives">
+                    {pokemonDataTrainer2.map((pokemon, index) => (
+                      <div key={pokemon.id} className="pokemon-final-stat">
+                        <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
+                        <span className={livesTrainer2[index] > 0 ? 'alive' : 'fainted'}>
+                          {pokemon.nombre}: {livesTrainer2[index]}/{vidaMaxE2[index]} HP
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="victory-actions">
+              <button className="btn btn-primary btn-lg" onClick={resetBattle}>
+                <span className="btn-icon">🔄</span>
+                Nueva Batalla
+              </button>
+              <button className="btn btn-secondary btn-lg" onClick={() => navigate("/")}>
+                <span className="btn-icon">🏠</span>
+                Volver al Inicio
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <h1>Simulación de Combate - Turno {turn}</h1>
-
-      <div className="battle-container">
-        {/* Entrenador 1 */}
-        <div className="trainer-container">
-          <h2>{selectedTrainer1.nombre}</h2>
-          <div className="pokemon-list">
-            {pokemonDataTrainer1.map((pokemon, index) => (
-              <div key={pokemon.id} className="pokemon-card">
-                <img
-                  src={`data:image/png;base64,${pokemon.sprite}`}
-                  alt={pokemon.nombre}
-                />
-                <p>{pokemon.nombre} - Vida: {livesTrainer1[index]} / {vidaMaxE1[index]}</p>
-                <div>
-                  {attacksTrainer1[index]?.map((ataque) => (
-                    <button
-                      key={ataque.id}
-                      onClick={() => {
-                        setSelectedAttackerE1(index);
-                      }}
-                      style={{
-                        backgroundColor:
-                          selectedAttackerE1 === index ? "lightblue" : "",
-                        margin: "5px",
-                      }}
-                    >
-                      {ataque.nombre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Entrenador 2 */}
-        <div className="trainer-container">
-          <h2>{selectedTrainer2.nombre}</h2>
-          <div className="pokemon-list">
-            {pokemonDataTrainer2.map((pokemon, index) => (
-              <div key={pokemon.id} className="pokemon-card">
-                <img
-                  src={`data:image/png;base64,${pokemon.sprite}`}
-                  alt={pokemon.nombre}
-                />
-                <p>{pokemon.nombre} - Vida: {livesTrainer2[index]} / {vidaMaxE2[index]}</p>
-                <div>
-                  {attacksTrainer2[index]?.map((ataque) => (
-                    <button
-                      key={ataque.id}
-                      onClick={() => {
-                        setSelectedAttackerE2(index);
-                      }}
-                      style={{
-                        backgroundColor:
-                          selectedAttackerE2 === index ? "lightblue" : "",
-                        margin: "5px",
-                      }}
-                    >
-                      {ataque.nombre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+    <div className="page-container battle-page">
+      {/* Battle Header */}
+      <div className="battle-header">
+        <div className="battle-title-section">
+          <h1 className="battle-title">
+            <span className="title-icon">⚔️</span>
+            Batalla Pokémon
+          </h1>
+          <div className="battle-info">
+            <div className="turn-indicator">
+              <span className="turn-number">Turno {turn}</span>
+              <span className={`current-player ${isTeam1Turn ? 'team1' : 'team2'}`}>
+                {isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div>
-        <h2>Selecciona el objetivo del ataque:</h2>
+      {/* Battle Arena */}
+      <div className="battle-arena">
+        {/* Trainer 1 Side */}
+        <div className={`trainer-battlefield ${isTeam1Turn ? 'active-turn' : 'waiting-turn'}`}>
+          <div className="trainer-info">
+            <h2 className="trainer-name">
+              <span className="trainer-icon">👨‍💼</span>
+              {selectedTrainer1.nombre}
+            </h2>
+            {isTeam1Turn && (
+              <div className="turn-indicator-badge">
+                <span className="badge-icon">⚡</span>
+                Tu turno
+              </div>
+            )}
+          </div>
+          
+          <div className="pokemon-team">
+            {pokemonDataTrainer1.map((pokemon, index) => {
+              const isAlive = livesTrainer1[index] > 0;
+              const isSelected = selectedAttackerE1 === index && isTeam1Turn;
+              const healthPercentage = (livesTrainer1[index] / vidaMaxE1[index]) * 100;
+              
+              return (
+                <div 
+                  key={pokemon.id} 
+                  className={`pokemon-battle-card ${!isAlive ? 'fainted' : ''} ${isSelected ? 'selected' : ''}`}
+                >
+                  <div className="pokemon-image-container">
+                    <img
+                      src={`data:image/png;base64,${pokemon.sprite}`}
+                      alt={pokemon.nombre}
+                      className="pokemon-battle-sprite"
+                    />
+                    {!isAlive && <div className="fainted-overlay">💀</div>}
+                    {isSelected && <div className="selection-glow"></div>}
+                  </div>
+                  
+                  <div className="pokemon-battle-info">
+                    <h4 className="pokemon-battle-name">{pokemon.nombre}</h4>
+                    <div className={`type-badge type-${pokemon.tipoPokemon.toLowerCase()}`}>
+                      {getTypeIcon(pokemon.tipoPokemon)}
+                    </div>
+                    
+                    <div className="health-section">
+                      <div className="health-bar">
+                        <div 
+                          className={`health-fill ${healthPercentage <= 25 ? 'critical' : healthPercentage <= 50 ? 'warning' : 'healthy'}`}
+                          style={{width: `${Math.max(0, healthPercentage)}%`}}
+                        ></div>
+                      </div>
+                      <span className="health-text">
+                        {livesTrainer1[index]} / {vidaMaxE1[index]} HP
+                      </span>
+                    </div>
+                  </div>
 
-        <div>
-          {pokemonDataTrainer1.map((pokemon, index) => (
-            <button
-              key={pokemon.id}
-              onClick={() => setSelectedTargetE2(index)}
-              style={{
-                backgroundColor: selectedTargetE2 === index ? "lightgreen" : "",
-              }}
-            >
-              {pokemon.nombre}
-            </button>
-          ))}
+                  {/* Action Selection for Team 1 */}
+                  {isTeam1Turn && isAlive && (
+                    <div className="action-selection">
+                      <div className="action-type-toggle">
+                        <button
+                          className={`action-toggle-btn ${(!useEffectE1 || selectedAttackerE1 !== index) ? 'active' : ''}`}
+                          onClick={() => handlePokemonAction(1, index, false)}
+                        >
+                          <span className="btn-icon">⚔️</span>
+                          Atacar
+                        </button>
+                        <button
+                          className={`action-toggle-btn ${(useEffectE1 && selectedAttackerE1 === index) ? 'active' : ''}`}
+                          onClick={() => handlePokemonAction(1, index, true)}
+                        >
+                          <span className="btn-icon">✨</span>
+                          Efecto
+                        </button>
+                      </div>
+
+                      {selectedAttackerE1 === index && (
+                        <div className="actions-list">
+                          {useEffectE1 ? (
+                            effectsTrainer1[index] && (
+                              <div className="effect-item">
+                                <span className="effect-name">{effectsTrainer1[index].nombre}</span>
+                                <span className="effect-description">{effectsTrainer1[index].descripcion}</span>
+                              </div>
+                            )
+                          ) : (
+                            attacksTrainer1[index]?.map((ataque) => (
+                              <div key={ataque.id} className="attack-item">
+                                <span className="attack-name">{ataque.nombre}</span>
+                                <div className={`attack-type type-${ataque.tipoAtaque.toLowerCase()}`}>
+                                  {getTypeIcon(ataque.tipoAtaque)}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div>
-          {pokemonDataTrainer2.map((pokemon, index) => (
-            <button
-              key={pokemon.id}
-              onClick={() => setSelectedTargetE1(index)}
-              style={{
-                backgroundColor: selectedTargetE1 === index ? "lightgreen" : "",
-              }}
-            >
-              {pokemon.nombre}
-            </button>
-          ))}
+        {/* VS Indicator */}
+        <div className="vs-section">
+          <div className="vs-indicator">
+            <span className="vs-text">VS</span>
+          </div>
+        </div>
+
+        {/* Trainer 2 Side */}
+        <div className={`trainer-battlefield ${!isTeam1Turn ? 'active-turn' : 'waiting-turn'}`}>
+          <div className="trainer-info">
+            <h2 className="trainer-name">
+              <span className="trainer-icon">👩‍💼</span>
+              {selectedTrainer2.nombre}
+            </h2>
+            {!isTeam1Turn && (
+              <div className="turn-indicator-badge">
+                <span className="badge-icon">⚡</span>
+                Tu turno
+              </div>
+            )}
+          </div>
+          
+          <div className="pokemon-team">
+            {pokemonDataTrainer2.map((pokemon, index) => {
+              const isAlive = livesTrainer2[index] > 0;
+              const isSelected = selectedAttackerE2 === index && !isTeam1Turn;
+              const healthPercentage = (livesTrainer2[index] / vidaMaxE2[index]) * 100;
+              
+              return (
+                <div 
+                  key={pokemon.id} 
+                  className={`pokemon-battle-card ${!isAlive ? 'fainted' : ''} ${isSelected ? 'selected' : ''}`}
+                >
+                  <div className="pokemon-image-container">
+                    <img
+                      src={`data:image/png;base64,${pokemon.sprite}`}
+                      alt={pokemon.nombre}
+                      className="pokemon-battle-sprite"
+                    />
+                    {!isAlive && <div className="fainted-overlay">💀</div>}
+                    {isSelected && <div className="selection-glow"></div>}
+                  </div>
+                  
+                  <div className="pokemon-battle-info">
+                    <h4 className="pokemon-battle-name">{pokemon.nombre}</h4>
+                    <div className={`type-badge type-${pokemon.tipoPokemon.toLowerCase()}`}>
+                      {getTypeIcon(pokemon.tipoPokemon)}
+                    </div>
+                    
+                    <div className="health-section">
+                      <div className="health-bar">
+                        <div 
+                          className={`health-fill ${healthPercentage <= 25 ? 'critical' : healthPercentage <= 50 ? 'warning' : 'healthy'}`}
+                          style={{width: `${Math.max(0, healthPercentage)}%`}}
+                        ></div>
+                      </div>
+                      <span className="health-text">
+                        {livesTrainer2[index]} / {vidaMaxE2[index]} HP
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Selection for Team 2 */}
+                  {!isTeam1Turn && isAlive && (
+                    <div className="action-selection">
+                      <div className="action-type-toggle">
+                        <button
+                          className={`action-toggle-btn ${(!useEffectE2 || selectedAttackerE2 !== index) ? 'active' : ''}`}
+                          onClick={() => handlePokemonAction(2, index, false)}
+                        >
+                          <span className="btn-icon">⚔️</span>
+                          Atacar
+                        </button>
+                        <button
+                          className={`action-toggle-btn ${(useEffectE2 && selectedAttackerE2 === index) ? 'active' : ''}`}
+                          onClick={() => handlePokemonAction(2, index, true)}
+                        >
+                          <span className="btn-icon">✨</span>
+                          Efecto
+                        </button>
+                      </div>
+
+                      {selectedAttackerE2 === index && (
+                        <div className="actions-list">
+                          {useEffectE2 ? (
+                            effectsTrainer2[index] && (
+                              <div className="effect-item">
+                                <span className="effect-name">{effectsTrainer2[index].nombre}</span>
+                                <span className="effect-description">{effectsTrainer2[index].descripcion}</span>
+                              </div>
+                            )
+                          ) : (
+                            attacksTrainer2[index]?.map((ataque) => (
+                              <div key={ataque.id} className="attack-item">
+                                <span className="attack-name">{ataque.nombre}</span>
+                                <div className={`attack-type type-${ataque.tipoAtaque.toLowerCase()}`}>
+                                  {getTypeIcon(ataque.tipoAtaque)}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <button onClick={handleAttack}>Realizar Ataque</button>
-      <button onClick={() => navigate("/setup")}>Volver a la selección</button>
+      {/* Target Selection */}
+      {((isTeam1Turn && selectedAttackerE1 !== null && !useEffectE1) || 
+        (!isTeam1Turn && selectedAttackerE2 !== null && !useEffectE2)) && (
+        <div className="target-selection">
+          <h3 className="target-title">
+            <span className="title-icon">🎯</span>
+            Selecciona el objetivo del ataque
+          </h3>
+          
+          <div className="target-options">
+            {(isTeam1Turn ? pokemonDataTrainer2 : pokemonDataTrainer1).map((pokemon, index) => {
+              const lives = isTeam1Turn ? livesTrainer2 : livesTrainer1;
+              const maxLives = isTeam1Turn ? vidaMaxE2 : vidaMaxE1;
+              const isAlive = lives[index] > 0;
+              const isSelected = isTeam1Turn ? selectedTargetE1 === index : selectedTargetE2 === index;
+              
+              return (
+                <button
+                  key={pokemon.id}
+                  className={`target-option ${isSelected ? 'selected' : ''} ${!isAlive ? 'disabled' : ''}`}
+                  onClick={() => isAlive && handleTargetSelection(isTeam1Turn ? 2 : 1, index)}
+                  disabled={!isAlive}
+                >
+                  <img
+                    src={`data:image/png;base64,${pokemon.sprite}`}
+                    alt={pokemon.nombre}
+                    className="target-sprite"
+                  />
+                  <div className="target-info">
+                    <span className="target-name">{pokemon.nombre}</span>
+                    <span className="target-health">{lives[index]}/{maxLives[index]} HP</span>
+                  </div>
+                  {!isAlive && <div className="fainted-indicator">💀</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Action Button */}
+      <div className="battle-actions">
+        <button
+          className={`btn btn-primary btn-lg ${!canExecuteAction() || battleInProgress ? 'btn-disabled' : ''}`}
+          onClick={executeAction}
+          disabled={!canExecuteAction() || battleInProgress}
+        >
+          {battleInProgress ? (
+            <>
+              <div className="btn-spinner"></div>
+              Ejecutando...
+            </>
+          ) : (
+            <>
+              <span className="btn-icon">⚡</span>
+              {isTeam1Turn ? 
+                (useEffectE1 ? 'Usar Efecto' : 'Atacar') : 
+                (useEffectE2 ? 'Usar Efecto' : 'Atacar')
+              }
+            </>
+          )}
+        </button>
+        
+        <button className="btn btn-secondary" onClick={resetBattle}>
+          <span className="btn-icon">🏠</span>
+          Volver a Selección
+        </button>
+      </div>
+
+      {/* Battle Log */}
+      <div className="battle-log">
+        <h3 className="log-title">
+          <span className="title-icon">📋</span>
+          Registro de Batalla
+        </h3>
+        <div className="log-content">
+          {battleLog.map((entry, index) => (
+            <div key={index} className="log-entry">
+              <span className="log-number">{index + 1}.</span>
+              <span className="log-text">{entry}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
+};
+
+// Helper function for type icons
+const getTypeIcon = (tipo) => {
+  const icons = {
+    AGUA: "💧",
+    FUEGO: "🔥",
+    PLANTA: "🌿",
+    TIERRA: "🌍",
+    ELECTRICO: "⚡"
+  };
+  return icons[tipo] || "⭐";
 };
 
 export default BattleView;

@@ -40,7 +40,6 @@ public class PokemonController {
             @RequestParam("vida") Long vida,
             @RequestParam("ataque") Long ataque,
             @RequestParam("defensa") Long defensa,
-            @RequestParam("velocidad") Long velocidad,
             @RequestParam("idAtaque1") Long idAtaque1,
             @RequestParam("idAtaque2") Long idAtaque2,
             @RequestParam("idEfecto") Long idEfecto,
@@ -57,7 +56,6 @@ public class PokemonController {
         pokemon.setVida(vida);
         pokemon.setAtaque(ataque);
         pokemon.setDefensa(defensa);
-        pokemon.setVelocidad(velocidad);
         pokemon.setIdAtaque1(idAtaque1);
         pokemon.setIdAtaque2(idAtaque2);
         pokemon.setIdEfecto(idEfecto);

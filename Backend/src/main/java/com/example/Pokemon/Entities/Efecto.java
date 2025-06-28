@@ -14,10 +14,8 @@ public class Efecto {
         SUBIR_VIDA,
         BAJAR_ATAQUE_RIVAL,
         BAJAR_DEFENSA_RIVAL,
-        BAJAR_VELOCIDAD_RIVAL,
         SUBIR_ATAQUE_PROPIO,
-        SUBIR_DEFENSA_PROPIO,
-        SUBIR_VELOCIDAD_PROPIO
+        SUBIR_DEFENSA_PROPIO
     }
     @Enumerated(EnumType.STRING)
     private tipoEfecto tipoEfecto;
