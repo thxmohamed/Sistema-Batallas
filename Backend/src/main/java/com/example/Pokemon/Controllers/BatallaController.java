@@ -2,8 +2,6 @@ package com.example.Pokemon.Controllers;
 
 import com.example.Pokemon.DTO.BatallaDTO;
 import com.example.Pokemon.Entities.Batalla;
-import com.example.Pokemon.Entities.Entrenador;
-import com.example.Pokemon.Entities.Pokemon;
 import com.example.Pokemon.Services.BatallaService;
 import com.example.Pokemon.Services.EntrenadorService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,13 +39,11 @@ public class BatallaController {
         return new ResponseEntity<>(createdBatalla, HttpStatus.CREATED);
     }
 
-    @PostMapping("/combate/{posAtacanteE1}/{posAtacanteE2}/{posAgredidoE1}/{posAgredidoE2}")
+    @PostMapping("/combate/{posicionAtacante}/{posicionReceptor}")
     public ResponseEntity<BatallaDTO> combatir(@RequestBody BatallaDTO batallaDTO,
-                                               @PathVariable int posAtacanteE1,
-                                               @PathVariable int posAtacanteE2,
-                                               @PathVariable int posAgredidoE1,
-                                               @PathVariable int posAgredidoE2) {
-        batallaDTO = batallaService.combatir(batallaDTO, posAtacanteE1, posAgredidoE2, posAtacanteE2, posAgredidoE1);
+                                               @PathVariable int posicionAtacante,
+                                               @PathVariable int posicionReceptor) {
+        batallaDTO = batallaService.combatir(batallaDTO, posicionAtacante, posicionReceptor);
         return new ResponseEntity<>(batallaDTO, HttpStatus.OK);
     }
 }

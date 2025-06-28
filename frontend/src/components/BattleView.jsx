@@ -169,23 +169,35 @@ const BattleView = () => {
         vida: livesTrainer2[index],
       }));
 
+      // Determinar atacante y receptor basado en el turno actual
+      const posicionAtacante = isTeam1Turn ? selectedAttackerE1 : selectedAttackerE2;
+      const posicionReceptor = isTeam1Turn ? selectedTargetE1 : selectedTargetE2;
+      const useEffect = isTeam1Turn ? useEffectE1 : useEffectE2;
+      
+      // Obtener el ataque y efecto correspondiente al equipo que está atacando
+      const ataque = isTeam1Turn ? 
+        (attacksTrainer1[selectedAttackerE1] ? attacksTrainer1[selectedAttackerE1][0] : null) :
+        (attacksTrainer2[selectedAttackerE2] ? attacksTrainer2[selectedAttackerE2][0] : null);
+        
+      const efecto = isTeam1Turn ? 
+        effectsTrainer1[selectedAttackerE1] : 
+        effectsTrainer2[selectedAttackerE2];
+
       const batallaDTO = {
         entrenador1: updatedEntrenador1,
         entrenador2: updatedEntrenador2,
-        ataqueE1: useEffectE1 ? null : (attacksTrainer1[selectedAttackerE1] ? attacksTrainer1[selectedAttackerE1][0] : null),
-        ataqueE2: useEffectE2 ? null : (attacksTrainer2[selectedAttackerE2] ? attacksTrainer2[selectedAttackerE2][0] : null),
-        efectoE1: useEffectE1 ? effectsTrainer1[selectedAttackerE1] : null,
-        efectoE2: useEffectE2 ? effectsTrainer2[selectedAttackerE2] : null,
-        usarEfectoE1: useEffectE1,
-        usarEfectoE2: useEffectE2,
+        ataqueE1: isTeam1Turn && !useEffect ? ataque : null,
+        ataqueE2: !isTeam1Turn && !useEffect ? ataque : null,
+        efectoE1: isTeam1Turn && useEffect ? efecto : null,
+        efectoE2: !isTeam1Turn && useEffect ? efecto : null,
+        usarEfectoE1: isTeam1Turn && useEffect,
+        usarEfectoE2: !isTeam1Turn && useEffect,
         turno: turn,
       };
 
       const response = await batallaService.combatir(
-        selectedAttackerE1 || 0,
-        selectedAttackerE2 || 0,
-        selectedTargetE2 || 0,
-        selectedTargetE1 || 0,
+        posicionAtacante || 0,
+        posicionReceptor || 0,
         batallaDTO
       );
 

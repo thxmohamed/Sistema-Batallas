@@ -55,107 +55,81 @@ public class BatallaService {
     }
 
     public BatallaDTO combatir(BatallaDTO batalla,
-                                         int posicionE1,
-                                         int posicionE2,
-                                         int posicionE3,
-                                         int posicionE4) {
-        // E1 ataca a E2, E3 ataca a E4
+                             int posicionAtacante,
+                             int posicionReceptor) {
         List<Pokemon> entrenador1 = batalla.getEntrenador1();
         List<Pokemon> entrenador2 = batalla.getEntrenador2();
-
-        Pokemon atacanteE1 = entrenador1.get(posicionE1);
-        Pokemon agredidoE2 = entrenador2.get(posicionE2);
-
-        Pokemon atacanteE2 = entrenador2.get(posicionE3);
-        Pokemon agredidoE1 = entrenador1.get(posicionE4);
-
-        Ataque ataqueE1 = batalla.getataqueE1();
-        Ataque ataqueE2 = batalla.getataqueE2();
-
+        
         int turnoActual = batalla.getTurno();
-
-        if (esPrimeroEntrenador1(turnoActual)) {
-            // Entrenador 1 ataca primero
-            if (batalla.isUsarEfectoE1()) {
-                // Usar efecto
-                Efecto efectoE1 = batalla.getEfectoE1();
-                Pokemon pokemonAfectado = pokemonService.aplicarEfecto(atacanteE1, agredidoE2, efectoE1);
-                // El efecto puede afectar al usuario o al rival dependiendo del tipo
-                if (efectoRequiereRival(efectoE1)) {
-                    actualizarPokemon(entrenador2, posicionE2, pokemonAfectado);
+        boolean esEquipo1 = esPrimeroEntrenador1(turnoActual);
+        
+        Pokemon atacante, receptor;
+        List<Pokemon> equipoAtacante, equipoReceptor;
+        int posAtacanteEnEquipo, posReceptorEnEquipo;
+        
+        if (esEquipo1) {
+            // Equipo 1 ataca al equipo 2
+            atacante = entrenador1.get(posicionAtacante);
+            receptor = entrenador2.get(posicionReceptor);
+            equipoAtacante = entrenador1;
+            equipoReceptor = entrenador2;
+            posAtacanteEnEquipo = posicionAtacante;
+            posReceptorEnEquipo = posicionReceptor;
+        } else {
+            // Equipo 2 ataca al equipo 1
+            atacante = entrenador2.get(posicionAtacante);
+            receptor = entrenador1.get(posicionReceptor);
+            equipoAtacante = entrenador2;
+            equipoReceptor = entrenador1;
+            posAtacanteEnEquipo = posicionAtacante;
+            posReceptorEnEquipo = posicionReceptor;
+        }
+        
+        // Verificar que el atacante no esté debilitado
+        if (estaDebilitado(atacante)) {
+            throw new RuntimeException("El Pokémon atacante está debilitado y no puede atacar");
+        }
+        
+        // Ejecutar la acción (ataque o efecto)
+        if (esEquipo1 && batalla.isUsarEfectoE1() || !esEquipo1 && batalla.isUsarEfectoE2()) {
+            // Usar efecto
+            Efecto efecto = esEquipo1 ? batalla.getEfectoE1() : batalla.getEfectoE2();
+            if (efecto != null) {
+                Pokemon pokemonAfectado = pokemonService.aplicarEfecto(atacante, receptor, efecto);
+                
+                // Determinar a quién afecta el efecto
+                if (efectoRequiereRival(efecto)) {
+                    // El efecto afecta al receptor
+                    actualizarPokemon(equipoReceptor, posReceptorEnEquipo, pokemonAfectado);
                 } else {
-                    actualizarPokemon(entrenador1, posicionE1, pokemonAfectado);
-                }
-            } else {
-                // Usar ataque
-                agredidoE2 = pokemonService.atacar(atacanteE1, agredidoE2, ataqueE1);
-                actualizarPokemon(entrenador2, posicionE2, agredidoE2);
-            }
-            
-            // Si el pokemon objetivo no está debilitado, el entrenador 2 puede atacar
-            if (!estaDebilitado(agredidoE2)) {
-                if (batalla.isUsarEfectoE2()) {
-                    // Usar efecto
-                    Efecto efectoE2 = batalla.getEfectoE2();
-                    Pokemon pokemonAfectado = pokemonService.aplicarEfecto(atacanteE2, agredidoE1, efectoE2);
-                    if (efectoRequiereRival(efectoE2)) {
-                        actualizarPokemon(entrenador1, posicionE4, pokemonAfectado);
-                    } else {
-                        actualizarPokemon(entrenador2, posicionE3, pokemonAfectado);
-                    }
-                } else {
-                    // Usar ataque
-                    agredidoE1 = pokemonService.atacar(atacanteE2, agredidoE1, ataqueE2);
-                    actualizarPokemon(entrenador1, posicionE4, agredidoE1);
+                    // El efecto afecta al atacante (auto-buff)
+                    actualizarPokemon(equipoAtacante, posAtacanteEnEquipo, pokemonAfectado);
                 }
             }
         } else {
-            // Entrenador 2 ataca primero
-            if (batalla.isUsarEfectoE2()) {
-                // Usar efecto
-                Efecto efectoE2 = batalla.getEfectoE2();
-                Pokemon pokemonAfectado = pokemonService.aplicarEfecto(atacanteE2, agredidoE1, efectoE2);
-                if (efectoRequiereRival(efectoE2)) {
-                    actualizarPokemon(entrenador1, posicionE4, pokemonAfectado);
-                } else {
-                    actualizarPokemon(entrenador2, posicionE3, pokemonAfectado);
-                }
-            } else {
-                // Usar ataque
-                agredidoE1 = pokemonService.atacar(atacanteE2, agredidoE1, ataqueE2);
-                actualizarPokemon(entrenador1, posicionE4, agredidoE1);
-            }
-            
-            // Si el pokemon objetivo no está debilitado, el entrenador 1 puede atacar
-            if (!estaDebilitado(agredidoE1)) {
-                if (batalla.isUsarEfectoE1()) {
-                    // Usar efecto
-                    Efecto efectoE1 = batalla.getEfectoE1();
-                    Pokemon pokemonAfectado = pokemonService.aplicarEfecto(atacanteE1, agredidoE2, efectoE1);
-                    if (efectoRequiereRival(efectoE1)) {
-                        actualizarPokemon(entrenador2, posicionE2, pokemonAfectado);
-                    } else {
-                        actualizarPokemon(entrenador1, posicionE1, pokemonAfectado);
-                    }
-                } else {
-                    // Usar ataque
-                    agredidoE2 = pokemonService.atacar(atacanteE1, agredidoE2, ataqueE1);
-                    actualizarPokemon(entrenador2, posicionE2, agredidoE2);
-                }
+            // Usar ataque
+            Ataque ataque = esEquipo1 ? batalla.getataqueE1() : batalla.getataqueE2();
+            if (ataque != null) {
+                Pokemon receptorDañado = pokemonService.atacar(atacante, receptor, ataque);
+                actualizarPokemon(equipoReceptor, posReceptorEnEquipo, receptorDañado);
             }
         }
-
-        // Actualizar el DTO
+        
+        // Actualizar el DTO con los equipos modificados
         batalla.setEntrenador1(entrenador1);
         batalla.setEntrenador2(entrenador2);
+        
+        // Limpiar las acciones del turno
         batalla.setataqueE1(null);
         batalla.setataqueE2(null);
         batalla.setEfectoE1(null);
         batalla.setEfectoE2(null);
         batalla.setUsarEfectoE1(false);
         batalla.setUsarEfectoE2(false);
-        batalla.setTurno(batalla.getTurno() + 1);
-
+        
+        // Avanzar al siguiente turno
+        batalla.setTurno(turnoActual + 1);
+        
         return batalla;
     }
 
