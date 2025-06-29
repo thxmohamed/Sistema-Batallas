@@ -36,4 +36,14 @@ public class EfectoController {
         Efecto newEfecto = efectoService.createEfecto(efecto);
         return new ResponseEntity<>(newEfecto, HttpStatus.CREATED);
     }
+
+    @PostMapping("/migrate-velocity")
+    public ResponseEntity<String> migrateVelocityEffects(){
+        try {
+            efectoService.migrateVelocityEffects();
+            return new ResponseEntity<>("Effects migrated successfully", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error migrating effects: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -59,7 +59,7 @@ const CrearEntrenador = () => {
       setPokemonDetails({
         ...response.data,
         attacks: attacks.data,
-        efecto: efecto.data,
+        efecto: efecto.data, // Agregar el efecto a los detalles
       });
     } catch (error) {
       console.error("Error al obtener los detalles del Pokémon:", error);
@@ -386,20 +386,19 @@ const CrearEntrenador = () => {
                 </div>
               </div>
 
+              {/* Effects Section */}
               {pokemonDetails.efecto && (
                 <div className="effects-section">
                   <h3 className="effects-title">
                     <span className="title-icon">✨</span>
                     Efecto Especial
                   </h3>
-                  <div className="effect-card">
-                    <div className="effect-header">
-                      <h4 className="effect-name">{pokemonDetails.efecto.nombre}</h4>
-                      <span className={`effect-type type-${pokemonDetails.efecto.tipoEfecto.toLowerCase()}`}>
-                        {getEffectIcon(pokemonDetails.efecto.tipoEfecto)}
-                      </span>
+                  <div className="effect-detail-card">
+                    <div className="effect-detail-header">
+                      <h4 className="effect-detail-name">{pokemonDetails.efecto.nombre}</h4>
+                      <span className="effect-detail-type">{pokemonDetails.efecto.tipoEfecto}</span>
                     </div>
-                    <p className="effect-description">{pokemonDetails.efecto.descripcion}</p>
+                    <p className="effect-detail-description">{pokemonDetails.efecto.descripcion}</p>
                   </div>
                 </div>
               )}
@@ -455,19 +454,6 @@ const getTypeIcon = (tipo) => {
     ELECTRICO: "⚡"
   };
   return icons[tipo] || "⭐";
-};
-
-// Helper function for effect icons
-const getEffectIcon = (tipoEfecto) => {
-  const icons = {
-    CURACION: "💚",
-    DAÑO: "💥",
-    AUMENTO_ATAQUE: "⚔️",
-    AUMENTO_DEFENSA: "🛡️",
-    REDUCCION_ATAQUE: "🔻",
-    REDUCCION_DEFENSA: "🔽"
-  };
-  return icons[tipoEfecto] || "✨";
 };
 
 export default CrearEntrenador;

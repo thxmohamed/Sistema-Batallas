@@ -27,6 +27,9 @@ public class PokemonService {
     @Autowired
     EfectoRepository efectoRepository;
 
+    @Autowired
+    EfectoService efectoService;
+
     public List<Pokemon> getAllPokemon() {
         return pokemonRepository.findAll();
     }
@@ -37,6 +40,18 @@ public class PokemonService {
     }
 
     public Pokemon createPokemon(Pokemon pokemon) {
+        // Inicializar estadísticas base al crear el Pokémon
+        pokemon.setVidaBase(pokemon.getVida());
+        pokemon.setAtaqueBase(pokemon.getAtaque());
+        pokemon.setDefensaBase(pokemon.getDefensa());
+        
+        // Inicializar efectos como inactivos
+        pokemon.setTieneEfectoContinuo(false);
+        pokemon.setTurnosEfectoContinuo(0);
+        pokemon.setIdEfectoActivo(null);
+        pokemon.setAtaqueModificado(null);
+        pokemon.setDefensaModificada(null);
+        
         return pokemonRepository.save(pokemon);
     }
 
@@ -122,15 +137,23 @@ public class PokemonService {
                     efectividad = 0.5;
                 }
                 break;
+            case "NORMAL":
+                // Los ataques normales tienen efectividad neutra (1.0) contra todos los tipos
+                efectividad = 1.0;
+                break;
         }
-        Long dano = calcularDano(usuario.getAtaque(), rival.getDefensa(), stab, efectividad, potencia);
+        // Usar estadísticas efectivas para el cálculo de daño
+        Long ataqueEfectivo = usuario.getAtaqueEfectivo();
+        Long defensaEfectiva = rival.getDefensaEfectiva();
+        
+        Long dano = calcularDano(ataqueEfectivo, defensaEfectiva, stab, efectividad, potencia);
         System.out.println("########################");
         System.out.println("El daño es: " + dano);
         System.out.println("La efectividad es: " + efectividad);
         System.out.println("El stab es: " + stab);
         System.out.println("La potencia es: " + potencia);
-        System.out.println("El ataque es: " + usuario.getAtaque());
-        System.out.println("La defensa es: " + rival.getDefensa());
+        System.out.println("El ataque efectivo es: " + ataqueEfectivo);
+        System.out.println("La defensa efectiva es: " + defensaEfectiva);
 
         rival.setVida(Math.max(0, rival.getVida() - dano));
         return rival;
@@ -140,38 +163,115 @@ public class PokemonService {
         String tipoEfecto = String.valueOf(efecto.getTipoEfecto());
         Pokemon usuarioDB = getPokemonById(usuario.getId());
         Pokemon rivalDB = getPokemonById(rival.getId());
+        
+        // Inicializar estadísticas base si no existen
+        usuario.inicializarEstadisticasBase();
+        rival.inicializarEstadisticasBase();
+        
         Long vidaMaxRival = rivalDB.getVida();
         Long vidaMaxUsuario = usuarioDB.getVida();
+        
         switch (tipoEfecto) {
             case "DANO_CONTINUO":
+                // Aplicar daño inmediato
                 long danoContinuo = (long) (vidaMaxRival * efecto.getMultiplicador());
                 rival.setVida(Math.max(0, rival.getVida() - danoContinuo));
+                
+                // Configurar efecto continuo
+                rival.setTieneEfectoContinuo(true);
+                rival.setTurnosEfectoContinuo(4); // 4 turnos de duración
+                rival.setIdEfectoActivo(efecto.getId());
                 return rival;
 
             case "SUBIR_ATAQUE_PROPIO":
-                usuario.setAtaque((long) (usuario.getAtaque() * efecto.getMultiplicador()));
+                // Calcular nuevo ataque basado en el ataque base
+                long nuevoAtaque = (long) (usuario.getAtaqueBase() * (1.0 + efecto.getMultiplicador()));
+                usuario.setAtaqueModificado(nuevoAtaque);
+                usuario.setAtaque(nuevoAtaque); // También actualizar el ataque actual
+                usuario.setIdEfectoActivo(efecto.getId());
                 return usuario;
 
             case "SUBIR_DEFENSA_PROPIO":
-                usuario.setDefensa((long) (usuario.getDefensa() * efecto.getMultiplicador()));
+                // Calcular nueva defensa basada en la defensa base
+                long nuevaDefensa = (long) (usuario.getDefensaBase() * (1.0 + efecto.getMultiplicador()));
+                usuario.setDefensaModificada(nuevaDefensa);
+                usuario.setDefensa(nuevaDefensa); // También actualizar la defensa actual
+                usuario.setIdEfectoActivo(efecto.getId());
                 return usuario;
 
             case "SUBIR_VIDA":
-                long vidaNueva = Math.min(usuario.getVida() + 50, vidaMaxUsuario); // Valor fijo de 50 puntos
+                // Para efectos de curación, usar el multiplicador como porcentaje de vida máxima
+                // Si multiplicador es 0, usar 50% por defecto (0.5)
+                double porcentajeCuracion = efecto.getMultiplicador() == 0 ? 0.5 : efecto.getMultiplicador();
+                long vidaRecuperada = (long) (vidaMaxUsuario * porcentajeCuracion);
+                long vidaNueva = Math.min(usuario.getVida() + vidaRecuperada, vidaMaxUsuario);
                 usuario.setVida(vidaNueva);
+                
+                System.out.println("=== EFECTO CURACIÓN ===");
+                System.out.println("Vida máxima: " + vidaMaxUsuario);
+                System.out.println("Vida actual: " + (usuario.getVida() - vidaRecuperada));
+                System.out.println("Porcentaje curación: " + (porcentajeCuracion * 100) + "%");
+                System.out.println("Vida recuperada: " + vidaRecuperada);
+                System.out.println("Vida final: " + vidaNueva);
+                
                 return usuario;
 
             case "BAJAR_DEFENSA_RIVAL":
-                rival.setDefensa((long) (rival.getDefensa() * efecto.getMultiplicador()));
+                // Calcular nueva defensa basada en la defensa base
+                long defensaReducida = (long) (rival.getDefensaBase() * (1.0 - efecto.getMultiplicador()));
+                rival.setDefensaModificada(defensaReducida);
+                rival.setDefensa(defensaReducida); // También actualizar la defensa actual
+                rival.setIdEfectoActivo(efecto.getId());
                 return rival;
 
             case "BAJAR_ATAQUE_RIVAL":
-                rival.setAtaque((long) (rival.getAtaque() * efecto.getMultiplicador()));
+                // Calcular nuevo ataque basado en el ataque base
+                long ataqueReducido = (long) (rival.getAtaqueBase() * (1.0 - efecto.getMultiplicador()));
+                rival.setAtaqueModificado(ataqueReducido);
+                rival.setAtaque(ataqueReducido); // También actualizar el ataque actual
+                rival.setIdEfectoActivo(efecto.getId());
+                return rival;
+
+            // Casos legacy de velocidad - convertir a efectos equivalentes
+            case "SUBIR_VELOCIDAD_PROPIO":
+                // Convertir a efecto de ataque (velocidad -> prioridad de ataque)
+                long ataqueVelocidad = (long) (usuario.getAtaqueBase() * (1.0 + efecto.getMultiplicador()));
+                usuario.setAtaqueModificado(ataqueVelocidad);
+                usuario.setAtaque(ataqueVelocidad);
+                usuario.setIdEfectoActivo(efecto.getId());
+                return usuario;
+
+            case "BAJAR_VELOCIDAD_RIVAL":
+                // Convertir a efecto de defensa (velocidad -> capacidad de esquivar)
+                long defensaVelocidad = (long) (rival.getDefensaBase() * (1.0 - efecto.getMultiplicador()));
+                rival.setDefensaModificada(defensaVelocidad);
+                rival.setDefensa(defensaVelocidad);
+                rival.setIdEfectoActivo(efecto.getId());
                 return rival;
 
             default:
                 throw new IllegalArgumentException("Efecto desconocido: " + efecto.getTipoEfecto());
+        }
+    }
 
+    public void procesarEfectosContinuos(Pokemon pokemon) {
+        if (pokemon.isTieneEfectoContinuo() && pokemon.getTurnosEfectoContinuo() > 0) {
+            // Reducir contador de turnos
+            pokemon.setTurnosEfectoContinuo(pokemon.getTurnosEfectoContinuo() - 1);
+            
+            // Aplicar daño continuo si el efecto sigue activo
+            if (pokemon.getTurnosEfectoContinuo() > 0 && pokemon.getIdEfectoActivo() != null) {
+                Efecto efecto = efectoService.findEfectoById(pokemon.getIdEfectoActivo());
+                if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
+                    Pokemon pokemonOriginal = getPokemonById(pokemon.getId());
+                    long danoContinuo = (long) (pokemonOriginal.getVida() * efecto.getMultiplicador());
+                    pokemon.setVida(Math.max(0, pokemon.getVida() - danoContinuo));
+                }
+            } else {
+                // El efecto ha terminado
+                pokemon.setTieneEfectoContinuo(false);
+                pokemon.setIdEfectoActivo(null);
+            }
         }
     }
 

@@ -19,23 +19,30 @@ const CrearPokemon = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [availableAttacks, setAvailableAttacks] = useState([]);
+  const [availableEffects, setAvailableEffects] = useState([]);
   const [loadingAttacks, setLoadingAttacks] = useState(true);
+  const [loadingEffects, setLoadingEffects] = useState(true);
 
-  // Load available attacks when component mounts
+  // Load available attacks and effects when component mounts
   useEffect(() => {
-    const loadAttacks = async () => {
+    const loadAttacksAndEffects = async () => {
       try {
-        const response = await pokemonService.getAllAtaques();
-        setAvailableAttacks(response.data);
+        const [attacksResponse, effectsResponse] = await Promise.all([
+          pokemonService.getAllAtaques(),
+          pokemonService.getAllEfectos()
+        ]);
+        setAvailableAttacks(attacksResponse.data);
+        setAvailableEffects(effectsResponse.data);
       } catch (error) {
-        console.error('Error al cargar ataques:', error);
-        setMessage('⚠️ Error al cargar ataques disponibles');
+        console.error('Error al cargar ataques y efectos:', error);
+        setMessage('⚠️ Error al cargar ataques y efectos disponibles');
       } finally {
         setLoadingAttacks(false);
+        setLoadingEffects(false);
       }
     };
 
-    loadAttacks();
+    loadAttacksAndEffects();
   }, []);
 
   // Helper function to get type icon and color
@@ -370,19 +377,58 @@ const CrearPokemon = () => {
             <div className="form-group">
               <label className="form-label">
                 <span className="label-icon">✨</span>
-                ID Efecto Especial
+                Efecto Especial
               </label>
-              <input
-                type="number"
-                name="idEfecto"
-                value={formData.idEfecto}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="ID del efecto especial"
-                min="1"
-                required
-              />
-              <small className="form-hint">Habilidad especial única del Pokémon</small>
+              
+              {/* Selected Effect Display */}
+              {formData.idEfecto && (
+                <div className="selected-effect-display">
+                  <div className="selected-effect-card">
+                    {(() => {
+                      const selectedEffect = availableEffects.find(e => e.id === parseInt(formData.idEfecto));
+                      return selectedEffect ? (
+                        <>
+                          <div className="effect-header">
+                            <span className="effect-icon">✨</span>
+                            <span className="effect-name">{selectedEffect.nombre}</span>
+                          </div>
+                          <div className="effect-description">{selectedEffect.descripcion}</div>
+                          <div className="effect-type">{selectedEffect.tipoEfecto}</div>
+                        </>
+                      ) : 'Cargando efecto...';
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Effects Selector */}
+              {loadingEffects ? (
+                <div className="loading-attacks">
+                  <div className="loading-spinner"></div>
+                  <p>Cargando efectos disponibles...</p>
+                </div>
+              ) : (
+                <div className="effects-selector">
+                  <div className="effects-grid">
+                    {availableEffects.map(effect => (
+                      <div
+                        key={effect.id}
+                        className={`effect-option ${formData.idEfecto === effect.id.toString() ? 'selected' : ''}`}
+                        onClick={() => setFormData({...formData, idEfecto: effect.id.toString()})}
+                      >
+                        <div className="effect-info">
+                          <span className="effect-name">{effect.nombre}</span>
+                          <span className="effect-type-badge">{effect.tipoEfecto}</span>
+                          <p className="effect-description">{effect.descripcion}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {!formData.idEfecto && (
+                    <p className="selection-hint">Selecciona el efecto especial de tu Pokémon</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="form-group sprite-upload">

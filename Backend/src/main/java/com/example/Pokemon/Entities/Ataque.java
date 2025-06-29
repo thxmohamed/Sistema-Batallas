@@ -15,7 +15,8 @@ public class Ataque {
         FUEGO,
         PLANTA,
         TIERRA,
-        ELECTRICO
+        ELECTRICO,
+        NORMAL
     }
     @Enumerated(EnumType.STRING)
 

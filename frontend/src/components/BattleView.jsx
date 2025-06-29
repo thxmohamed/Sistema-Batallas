@@ -31,6 +31,10 @@ const BattleView = () => {
   const [selectedTargetE1, setSelectedTargetE1] = useState(null);
   const [selectedTargetE2, setSelectedTargetE2] = useState(null);
 
+  // Estados para ataques seleccionados
+  const [selectedAttackE1, setSelectedAttackE1] = useState(null);
+  const [selectedAttackE2, setSelectedAttackE2] = useState(null);
+
   const [useEffectE1, setUseEffectE1] = useState(false);
   const [useEffectE2, setUseEffectE2] = useState(false);
 
@@ -118,15 +122,25 @@ const BattleView = () => {
     if (trainerTeam === 1) {
       setSelectedAttackerE1(pokemonIndex);
       setUseEffectE1(useEffect);
+      setSelectedAttackE1(null); // Reset attack selection
       if (useEffect !== useEffectE1) {
         setSelectedTargetE1(null);
       }
     } else {
       setSelectedAttackerE2(pokemonIndex);
       setUseEffectE2(useEffect);
+      setSelectedAttackE2(null); // Reset attack selection
       if (useEffect !== useEffectE2) {
         setSelectedTargetE2(null);
       }
+    }
+  };
+
+  const handleAttackSelection = (trainerTeam, attackIndex) => {
+    if (trainerTeam === 1) {
+      setSelectedAttackE1(attackIndex);
+    } else {
+      setSelectedAttackE2(attackIndex);
     }
   };
 
@@ -141,11 +155,11 @@ const BattleView = () => {
   const canExecuteAction = () => {
     if (isTeam1Turn) {
       return selectedAttackerE1 !== null && 
-             (useEffectE1 || selectedTargetE1 !== null) &&
+             (useEffectE1 || (selectedTargetE1 !== null && selectedAttackE1 !== null)) &&
              livesTrainer1[selectedAttackerE1] > 0;
     } else {
       return selectedAttackerE2 !== null && 
-             (useEffectE2 || selectedTargetE2 !== null) &&
+             (useEffectE2 || (selectedTargetE2 !== null && selectedAttackE2 !== null)) &&
              livesTrainer2[selectedAttackerE2] > 0;
     }
   };
@@ -174,10 +188,15 @@ const BattleView = () => {
       const posicionReceptor = isTeam1Turn ? selectedTargetE1 : selectedTargetE2;
       const useEffect = isTeam1Turn ? useEffectE1 : useEffectE2;
       
+      // Obtener ataque seleccionado o usar el primero por defecto
+      const ataqueSeleccionado = isTeam1Turn ? 
+        (selectedAttackE1 !== null ? selectedAttackE1 : 0) : 
+        (selectedAttackE2 !== null ? selectedAttackE2 : 0);
+      
       // Obtener el ataque y efecto correspondiente al equipo que está atacando
       const ataque = isTeam1Turn ? 
-        (attacksTrainer1[selectedAttackerE1] ? attacksTrainer1[selectedAttackerE1][0] : null) :
-        (attacksTrainer2[selectedAttackerE2] ? attacksTrainer2[selectedAttackerE2][0] : null);
+        (attacksTrainer1[selectedAttackerE1] ? attacksTrainer1[selectedAttackerE1][ataqueSeleccionado] : null) :
+        (attacksTrainer2[selectedAttackerE2] ? attacksTrainer2[selectedAttackerE2][ataqueSeleccionado] : null);
         
       const efecto = isTeam1Turn ? 
         effectsTrainer1[selectedAttackerE1] : 
@@ -211,8 +230,8 @@ const BattleView = () => {
       // Add to battle log
       const currentTrainer = isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre;
       const action = isTeam1Turn ? 
-        (useEffectE1 ? `usó ${effectsTrainer1[selectedAttackerE1]?.nombre}` : `atacó con ${attacksTrainer1[selectedAttackerE1]?.[0]?.nombre}`) :
-        (useEffectE2 ? `usó ${effectsTrainer2[selectedAttackerE2]?.nombre}` : `atacó con ${attacksTrainer2[selectedAttackerE2]?.[0]?.nombre}`);
+        (useEffectE1 ? `usó ${effectsTrainer1[selectedAttackerE1]?.nombre}` : `atacó con ${ataque?.nombre || 'Ataque'}`) :
+        (useEffectE2 ? `usó ${effectsTrainer2[selectedAttackerE2]?.nombre}` : `atacó con ${ataque?.nombre || 'Ataque'}`);
       
       setBattleLog(prev => [...prev, `Turno ${turn}: ${currentTrainer} ${action}`]);
 
@@ -424,14 +443,24 @@ const BattleView = () => {
                               </div>
                             )
                           ) : (
-                            attacksTrainer1[index]?.map((ataque) => (
-                              <div key={ataque.id} className="attack-item">
-                                <span className="attack-name">{ataque.nombre}</span>
-                                <div className={`attack-type type-${ataque.tipoAtaque.toLowerCase()}`}>
-                                  {getTypeIcon(ataque.tipoAtaque)}
-                                </div>
-                              </div>
-                            ))
+                            <div className="attacks-selection">
+                              <h5 className="selection-title">Selecciona un ataque:</h5>
+                              {attacksTrainer1[index]?.map((ataque, attackIndex) => (
+                                <button
+                                  key={ataque.id}
+                                  className={`attack-selection-btn ${selectedAttackE1 === attackIndex ? 'selected' : ''}`}
+                                  onClick={() => handleAttackSelection(1, attackIndex)}
+                                >
+                                  <div className="attack-item">
+                                    <span className="attack-name">{ataque.nombre}</span>
+                                    <div className={`attack-type type-${ataque.tipoAtaque.toLowerCase()}`}>
+                                      {getTypeIcon(ataque.tipoAtaque)}
+                                    </div>
+                                    <span className="attack-power">Pot: {ataque.potencia}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
@@ -535,14 +564,24 @@ const BattleView = () => {
                               </div>
                             )
                           ) : (
-                            attacksTrainer2[index]?.map((ataque) => (
-                              <div key={ataque.id} className="attack-item">
-                                <span className="attack-name">{ataque.nombre}</span>
-                                <div className={`attack-type type-${ataque.tipoAtaque.toLowerCase()}`}>
-                                  {getTypeIcon(ataque.tipoAtaque)}
-                                </div>
-                              </div>
-                            ))
+                            <div className="attacks-selection">
+                              <h5 className="selection-title">Selecciona un ataque:</h5>
+                              {attacksTrainer2[index]?.map((ataque, attackIndex) => (
+                                <button
+                                  key={ataque.id}
+                                  className={`attack-selection-btn ${selectedAttackE2 === attackIndex ? 'selected' : ''}`}
+                                  onClick={() => handleAttackSelection(2, attackIndex)}
+                                >
+                                  <div className="attack-item">
+                                    <span className="attack-name">{ataque.nombre}</span>
+                                    <div className={`attack-type type-${ataque.tipoAtaque.toLowerCase()}`}>
+                                      {getTypeIcon(ataque.tipoAtaque)}
+                                    </div>
+                                    <span className="attack-power">Pot: {ataque.potencia}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
@@ -650,9 +689,10 @@ const getTypeIcon = (tipo) => {
     FUEGO: "🔥",
     PLANTA: "🌿",
     TIERRA: "🌍",
-    ELECTRICO: "⚡"
+    ELECTRICO: "⚡",
+    NORMAL: "⭐"
   };
-  return icons[tipo] || "⭐";
+  return icons[tipo] || "❓";
 };
 
 export default BattleView;

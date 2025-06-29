@@ -85,6 +85,14 @@ public class BatallaService {
             posReceptorEnEquipo = posicionReceptor;
         }
         
+        // Procesar efectos continuos en todos los Pokémon antes del turno
+        for (Pokemon p : entrenador1) {
+            pokemonService.procesarEfectosContinuos(p);
+        }
+        for (Pokemon p : entrenador2) {
+            pokemonService.procesarEfectosContinuos(p);
+        }
+        
         // Verificar que el atacante no esté debilitado
         if (estaDebilitado(atacante)) {
             throw new RuntimeException("El Pokémon atacante está debilitado y no puede atacar");

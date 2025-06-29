@@ -23,6 +23,18 @@ public class Pokemon {
     private Long ataque;
     private Long defensa;
 
+    // Estadísticas base (se mantienen para calcular efectos)
+    private Long vidaBase;
+    private Long ataqueBase;
+    private Long defensaBase;
+
+    // Efectos activos
+    private Long ataqueModificado; // Para efectos de ataque
+    private Long defensaModificada; // Para efectos de defensa
+    private boolean tieneEfectoContinuo; // Para efectos como veneno
+    private int turnosEfectoContinuo; // Contador de turnos para efectos continuos
+    private Long idEfectoActivo; // ID del efecto activo
+
     private Long idAtaque1;
     private Long idAtaque2;
 
@@ -99,4 +111,79 @@ public class Pokemon {
         this.sprite = sprite;
     }
 
+    // Getters y setters para campos de estadísticas base
+    public Long getVidaBase() {
+        return vidaBase;
+    }
+    public void setVidaBase(Long vidaBase) {
+        this.vidaBase = vidaBase;
+    }
+    public Long getAtaqueBase() {
+        return ataqueBase;
+    }
+    public void setAtaqueBase(Long ataqueBase) {
+        this.ataqueBase = ataqueBase;
+    }
+    public Long getDefensaBase() {
+        return defensaBase;
+    }
+    public void setDefensaBase(Long defensaBase) {
+        this.defensaBase = defensaBase;
+    }
+
+    // Getters y setters para efectos activos
+    public Long getAtaqueModificado() {
+        return ataqueModificado;
+    }
+    public void setAtaqueModificado(Long ataqueModificado) {
+        this.ataqueModificado = ataqueModificado;
+    }
+    public Long getDefensaModificada() {
+        return defensaModificada;
+    }
+    public void setDefensaModificada(Long defensaModificada) {
+        this.defensaModificada = defensaModificada;
+    }
+    public boolean isTieneEfectoContinuo() {
+        return tieneEfectoContinuo;
+    }
+    public void setTieneEfectoContinuo(boolean tieneEfectoContinuo) {
+        this.tieneEfectoContinuo = tieneEfectoContinuo;
+    }
+    public int getTurnosEfectoContinuo() {
+        return turnosEfectoContinuo;
+    }
+    public void setTurnosEfectoContinuo(int turnosEfectoContinuo) {
+        this.turnosEfectoContinuo = turnosEfectoContinuo;
+    }
+    public Long getIdEfectoActivo() {
+        return idEfectoActivo;
+    }
+    public void setIdEfectoActivo(Long idEfectoActivo) {
+        this.idEfectoActivo = idEfectoActivo;
+    }
+
+    // Métodos utilitarios para efectos
+    public void inicializarEstadisticasBase() {
+        if (vidaBase == null) vidaBase = vida;
+        if (ataqueBase == null) ataqueBase = ataque;
+        if (defensaBase == null) defensaBase = defensa;
+    }
+
+    public void resetearModificadores() {
+        ataqueModificado = null;
+        defensaModificada = null;
+        
+        // Restaurar estadísticas base solo si no son efectos permanentes
+        if (ataqueBase != null) ataque = ataqueBase;
+        if (defensaBase != null) defensa = defensaBase;
+    }
+
+    public Long getAtaqueEfectivo() {
+        return ataqueModificado != null ? ataqueModificado : ataque;
+    }
+
+    public Long getDefensaEfectiva() {
+        return defensaModificada != null ? defensaModificada : defensa;
+    }
 }

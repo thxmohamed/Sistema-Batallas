@@ -44,6 +44,10 @@ const getAllAtaques = () => {
     return httpClient.get('/ataque/')
 }
 
+const getAllEfectos = () => {
+    return httpClient.get('/efecto/')
+}
+
 export default {
     getAll,
     getById, 
@@ -54,5 +58,6 @@ export default {
     atacar, 
     aplicarEfecto,
     getByTipo,
-    getAllAtaques
+    getAllAtaques,
+    getAllEfectos
 }

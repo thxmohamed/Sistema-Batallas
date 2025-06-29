@@ -9,13 +9,16 @@ public class Efecto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nombre;
-    enum tipoEfecto {
+    public enum tipoEfecto {
         DANO_CONTINUO,
         SUBIR_VIDA,
         BAJAR_ATAQUE_RIVAL,
         BAJAR_DEFENSA_RIVAL,
         SUBIR_ATAQUE_PROPIO,
-        SUBIR_DEFENSA_PROPIO
+        SUBIR_DEFENSA_PROPIO,
+        // Tipo legacy para compatibilidad - será migrado
+        SUBIR_VELOCIDAD_PROPIO,
+        BAJAR_VELOCIDAD_RIVAL
     }
     @Enumerated(EnumType.STRING)
     private tipoEfecto tipoEfecto;
