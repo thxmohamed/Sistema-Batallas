@@ -173,14 +173,21 @@ const BattleView = () => {
 
     try {
       // Update Pokemon lives in the data
+      // Prepare batalla data maintaining all pokemon properties (including modified stats)
       const updatedEntrenador1 = pokemonDataTrainer1.map((pokemon, index) => ({
         ...pokemon,
         vida: livesTrainer1[index],
+        // Ensure modified stats are preserved if they exist
+        ataqueModificado: pokemon.ataqueModificado || pokemon.ataque,
+        defensaModificada: pokemon.defensaModificada || pokemon.defensa,
       }));
 
       const updatedEntrenador2 = pokemonDataTrainer2.map((pokemon, index) => ({
         ...pokemon,
         vida: livesTrainer2[index],
+        // Ensure modified stats are preserved if they exist
+        ataqueModificado: pokemon.ataqueModificado || pokemon.ataque,
+        defensaModificada: pokemon.defensaModificada || pokemon.defensa,
       }));
 
       // Determinar atacante y receptor basado en el turno actual
@@ -219,6 +226,10 @@ const BattleView = () => {
         posicionReceptor || 0,
         batallaDTO
       );
+
+      // Update the pokemon data with response from backend (includes modified stats)
+      setPokemonDataTrainer1(response.data.entrenador1);
+      setPokemonDataTrainer2(response.data.entrenador2);
 
       // Update lives
       const newLivesTrainer1 = response.data.entrenador1.map((pokemon) => pokemon.vida);

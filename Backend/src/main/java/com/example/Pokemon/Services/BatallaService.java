@@ -85,6 +85,15 @@ public class BatallaService {
             posReceptorEnEquipo = posicionReceptor;
         }
         
+        // Inicializar estadísticas base SOLO si no existen (primera vez)
+        // NO reinicializar los modificadores existentes
+        for (Pokemon p : entrenador1) {
+            p.inicializarSoloEstadisticasBase();
+        }
+        for (Pokemon p : entrenador2) {
+            p.inicializarSoloEstadisticasBase();
+        }
+        
         // Procesar efectos continuos en todos los Pokémon antes del turno
         for (Pokemon p : entrenador1) {
             pokemonService.procesarEfectosContinuos(p);

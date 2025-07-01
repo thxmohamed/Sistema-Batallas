@@ -319,7 +319,7 @@ const CrearEntrenador = () => {
                 </div>
                 
                 <div className="pokemon-detail-stats">
-                  <h3 className="stats-title">Estadísticas Base</h3>
+                  <h3 className="stats-title">Estadísticas</h3>
                   <div className="stats-grid">
                     <div className="stat-item">
                       <span className="stat-label">
@@ -339,13 +339,21 @@ const CrearEntrenador = () => {
                       <span className="stat-label">
                         <span className="stat-icon">⚔️</span>
                         Ataque
+                        {pokemonDetails.ataqueModificado && pokemonDetails.ataqueModificado !== pokemonDetails.ataque && (
+                          <span className="stat-modified"> (Modificado)</span>
+                        )}
                       </span>
                       <div className="stat-bar">
                         <div 
                           className="stat-fill stat-attack" 
-                          style={{width: `${(pokemonDetails.ataque / 150) * 100}%`}}
+                          style={{width: `${((pokemonDetails.ataqueModificado || pokemonDetails.ataque) / 150) * 100}%`}}
                         ></div>
-                        <span className="stat-value">{pokemonDetails.ataque}</span>
+                        <span className="stat-value">
+                          {pokemonDetails.ataqueModificado || pokemonDetails.ataque}
+                          {pokemonDetails.ataqueModificado && pokemonDetails.ataqueModificado !== pokemonDetails.ataque && (
+                            <small className="base-stat"> (Base: {pokemonDetails.ataque})</small>
+                          )}
+                        </span>
                       </div>
                     </div>
                     
@@ -353,13 +361,21 @@ const CrearEntrenador = () => {
                       <span className="stat-label">
                         <span className="stat-icon">🛡️</span>
                         Defensa
+                        {pokemonDetails.defensaModificada && pokemonDetails.defensaModificada !== pokemonDetails.defensa && (
+                          <span className="stat-modified"> (Modificado)</span>
+                        )}
                       </span>
                       <div className="stat-bar">
                         <div 
                           className="stat-fill stat-defense" 
-                          style={{width: `${(pokemonDetails.defensa / 150) * 100}%`}}
+                          style={{width: `${((pokemonDetails.defensaModificada || pokemonDetails.defensa) / 150) * 100}%`}}
                         ></div>
-                        <span className="stat-value">{pokemonDetails.defensa}</span>
+                        <span className="stat-value">
+                          {pokemonDetails.defensaModificada || pokemonDetails.defensa}
+                          {pokemonDetails.defensaModificada && pokemonDetails.defensaModificada !== pokemonDetails.defensa && (
+                            <small className="base-stat"> (Base: {pokemonDetails.defensa})</small>
+                          )}
+                        </span>
                       </div>
                     </div>
                   </div>

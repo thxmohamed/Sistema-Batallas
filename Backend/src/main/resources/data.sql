@@ -40,9 +40,9 @@ INSERT INTO ataque (nombre, tipo_ataque, potencia, descripcion) VALUES
 
 
 INSERT INTO efecto (nombre, tipo_efecto, multiplicador, descripcion) VALUES
-('Tóxico', 'DANO_CONTINUO', 0.1, 'Envenena al enemigo y causa daño continuo.'),
+('Tóxico', 'DANO_CONTINUO', 0.3, 'Causa daño fijo al oponente, reduciendo su vida en un 30%.'),
 
-('Danza Espada', 'SUBIR_ATAQUE_PROPIO', 2, 'Duplica el ataque de tu Pokémon.'),
+('Danza Espada', 'SUBIR_ATAQUE_PROPIO', 1.3, 'Aumenta el ataque del Pokémon en un 30%.'),
 ('Aullido', 'SUBIR_ATAQUE_PROPIO', 1.2, 'Aumenta el ataque de tu Pokémon en un 20%.'),
 ('Afilar', 'SUBIR_ATAQUE_PROPIO', 1.1, 'Aumenta el ataque de tu Pokémon en un 10%.'),
 
@@ -57,11 +57,3 @@ INSERT INTO efecto (nombre, tipo_efecto, multiplicador, descripcion) VALUES
 ('Encanto', 'BAJAR_ATAQUE_RIVAL', 1/1.3, 'Baja el ataque del Pokémon rival en un 30%.'),
 
 ('Recuperación', 'SUBIR_VIDA', 0.5, 'Recupera el 50% de la vida máxima del usuario.');
-
-INSERT INTO efecto (nombre, tipo_efecto, multiplicador, descripcion) VALUES
-    ('Recuperación', 'SUBIR_VIDA', 0.5, 'Recupera el 50% de la vida máxima del usuario.'),
-    ('Danza Espada', 'SUBIR_ATAQUE_PROPIO', 2, 'Duplica el ataque de tu Pokémon.'),
-    ('Rizo defensa', 'SUBIR_DEFENSA_PROPIO', 2, 'Duplica la defensa de tu Pokémon.');
-
-
-

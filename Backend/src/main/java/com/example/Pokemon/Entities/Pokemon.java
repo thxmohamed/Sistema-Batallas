@@ -168,6 +168,17 @@ public class Pokemon {
         if (vidaBase == null) vidaBase = vida;
         if (ataqueBase == null) ataqueBase = ataque;
         if (defensaBase == null) defensaBase = defensa;
+        
+        // Inicializar estadísticas modificadas con los valores base
+        if (ataqueModificado == null) ataqueModificado = ataque;
+        if (defensaModificada == null) defensaModificada = defensa;
+    }
+
+    // Solo inicializa las estadísticas base, NO toca los modificadores
+    public void inicializarSoloEstadisticasBase() {
+        if (vidaBase == null) vidaBase = vida;
+        if (ataqueBase == null) ataqueBase = ataque;
+        if (defensaBase == null) defensaBase = defensa;
     }
 
     public void resetearModificadores() {
@@ -180,10 +191,18 @@ public class Pokemon {
     }
 
     public Long getAtaqueEfectivo() {
-        return ataqueModificado != null ? ataqueModificado : ataque;
+        // Si no hay modificador, usar el ataque actual
+        if (ataqueModificado == null) {
+            return ataque;
+        }
+        return ataqueModificado;
     }
 
     public Long getDefensaEfectiva() {
-        return defensaModificada != null ? defensaModificada : defensa;
+        // Si no hay modificador, usar la defensa actual
+        if (defensaModificada == null) {
+            return defensa;
+        }
+        return defensaModificada;
     }
 }
