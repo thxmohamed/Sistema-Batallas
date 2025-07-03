@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useAudioContext } from '../contexts/AudioContext.jsx';
 import useAudio from '../hooks/useAudio';
 
@@ -9,43 +9,47 @@ const AudioManager = ({
 }) => {
   const { getEffectiveVolume, audioEnabled } = useAudioContext();
 
+  // Memoize volumes to prevent infinite re-renders
+  const musicVolume = useMemo(() => getEffectiveVolume('music'), [getEffectiveVolume]);
+  const sfxVolume = useMemo(() => getEffectiveVolume('sfx'), [getEffectiveVolume]);
+
   // Background music
   const battleTheme = useAudio(battleMusic, {
-    volume: getEffectiveVolume('music'),
+    volume: musicVolume,
     loop: true
   });
 
   const victoryTheme = useAudio(victoryMusic, {
-    volume: getEffectiveVolume('music'),
+    volume: musicVolume,
     loop: false
   });
 
   // Sound effects
   const attackHitSFX = useAudio('/audio/sfx/pokemon-hit.mp3', {
-    volume: getEffectiveVolume('sfx')
+    volume: sfxVolume
   });
 
   const effectUseSFX = useAudio('/audio/sfx/effect-use.mp3', {
-    volume: getEffectiveVolume('sfx')
+    volume: sfxVolume
   });
 
   const pokemonFaintSFX = useAudio('/audio/sfx/pokemon-fainted.mp3', {
-    volume: getEffectiveVolume('sfx')
+    volume: sfxVolume
   });
 
   const buttonClickSFX = useAudio('/audio/sfx/button-click.mp3', {
-    volume: getEffectiveVolume('sfx')
+    volume: sfxVolume
   });
 
   // Update volumes when context changes
   useEffect(() => {
-    battleTheme.setVolume(getEffectiveVolume('music'));
-    victoryTheme.setVolume(getEffectiveVolume('music'));
-    attackHitSFX.setVolume(getEffectiveVolume('sfx'));
-    effectUseSFX.setVolume(getEffectiveVolume('sfx'));
-    pokemonFaintSFX.setVolume(getEffectiveVolume('sfx'));
-    buttonClickSFX.setVolume(getEffectiveVolume('sfx'));
-  }, [getEffectiveVolume('music'), getEffectiveVolume('sfx')]);
+    battleTheme.setVolume(musicVolume);
+    victoryTheme.setVolume(musicVolume);
+    attackHitSFX.setVolume(sfxVolume);
+    effectUseSFX.setVolume(sfxVolume);
+    pokemonFaintSFX.setVolume(sfxVolume);
+    buttonClickSFX.setVolume(sfxVolume);
+  }, [musicVolume, sfxVolume, battleTheme, victoryTheme, attackHitSFX, effectUseSFX, pokemonFaintSFX, buttonClickSFX]);
 
   // Stop all audio when disabled
   useEffect(() => {

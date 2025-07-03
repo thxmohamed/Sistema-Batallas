@@ -863,11 +863,11 @@ button.selected {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro */
+  background: rgba(0, 0, 0, 0.6); /* semitransparente */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Asegura que el modal esté encima del contenido */
+  z-index: 1000;
 }
 
 .modal {
@@ -995,11 +995,13 @@ button.selected {
    ============================================= */
 
 .pokemon-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
   margin-top: 2rem;
 }
+
 
 /* =============================================
    TYPE BADGES
@@ -1095,28 +1097,17 @@ button.selected {
    MODAL STYLES
    ============================================= */
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
 .modal-content {
-  background: var(--card-bg);
-  border-radius: 16px;
+  background: #fff; /* FONDO CLARO para contenido */
+  color: #111;      /* Texto oscuro sobre fondo claro */
+  border-radius: 12px;
+  padding: 2rem;
   max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   overflow-y: auto;
-  box-shadow: var(--shadow-large);
+  max-height: 90vh;
+  position: relative;
 }
 
 .modal-header {
@@ -2132,6 +2123,289 @@ button.selected {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
+}
+
+/* ===== ESTILOS PARA SELECCIÓN DE ATAQUES Y EFECTOS ===== */
+
+/* Contenedor principal de selección de ataques */
+.visual-attack-selector {
+  margin-top: 10px;
+}
+
+.loading-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  border: 2px dashed #cbd5e0;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #4299e1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Grid de opciones de ataques */
+.attack-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+/* Opción individual de ataque */
+.attack-option {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.attack-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.attack-option.selected {
+  border-width: 3px;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Icono de tipo de ataque */
+.attack-type-icon {
+  font-size: 24px;
+  min-width: 40px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Detalles del ataque */
+.attack-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.attack-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+  color: #374151;
+}
+
+.attack-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.attack-description {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Indicador de selección */
+.selected-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Hint de selección */
+.selection-hint {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+}
+
+/* ===== ESTILOS PARA SELECCIÓN DE EFECTOS ===== */
+
+/* Efecto seleccionado mostrado */
+.selected-effect-display {
+  margin-bottom: 15px;
+}
+
+.selected-effect-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.effect-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.effect-icon {
+  font-size: 20px;
+}
+
+.effect-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.effect-description {
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.effect-type {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Selector de efectos */
+.effects-selector {
+  margin-top: 10px;
+}
+
+.effects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+/* Opción individual de efecto */
+.effect-option {
+  padding: 12px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.effect-option:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-color: #9ca3af;
+}
+
+.effect-option.selected {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+}
+
+.effect-info .effect-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.effect-type-badge {
+  display: inline-block;
+  background: #6366f1;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.effect-info .effect-description {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* Loading para efectos */
+.loading-attacks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  border: 2px dashed #cbd5e0;
+}
+
+.loading-attacks p {
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  .attack-options-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .effects-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .attack-option {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .attack-details {
+    text-align: center;
+  }
 }
 
 

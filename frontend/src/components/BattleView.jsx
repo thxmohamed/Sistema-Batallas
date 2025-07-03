@@ -4,11 +4,13 @@ import pokemonService from "../Services/pokemon.service";
 import batallaService from "../services/batalla.service";
 import AudioManager from "./AudioManager";
 import AudioControls from "./AudioControls";
+import { useAudioContext } from "../contexts/AudioContext.jsx";
 import "../App.css";
 
 const BattleView = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { mainTheme } = useAudioContext();
 
   const { selectedTrainer1, selectedTrainer2 } = location.state || {};
 
@@ -59,6 +61,11 @@ const BattleView = () => {
   const handleAudioReady = (controls) => {
     setAudioControls(controls);
     audioRef.current = controls;
+    
+    // Detener música principal al entrar en batalla
+    if (mainTheme.isPlaying) {
+      mainTheme.stop();
+    }
     
     // Start battle music when audio is ready
     if (controls.isAudioEnabled && !battleMusicPlaying && !winner) {
@@ -406,6 +413,12 @@ const BattleView = () => {
   };
 
   const resetBattle = () => {
+    // Reanudar música principal al salir de batalla
+    if (!mainTheme.isPlaying) {
+      setTimeout(() => {
+        mainTheme.play();
+      }, 500); // Pequeño delay para evitar conflictos
+    }
     navigate("/setup");
   };
 
@@ -480,11 +493,67 @@ const BattleView = () => {
 
   return (
     <div className="page-container battle-page">
-      {/* Audio Manager */}
+      {/* Audio Manager - SIEMPRE presente para evitar desmontaje */}
       <AudioManager onAudioReady={handleAudioReady} />
       
-      {/* Battle Header */}
-      <div className="battle-header">
+      {winner ? (
+        /* Victory Screen */
+        <div className="victory-screen">
+          <div className="victory-content">
+            <h1 className="victory-title">🏆 ¡VICTORIA! 🏆</h1>
+            <h2 className="winner-name">{winner}</h2>
+            <p className="victory-message">¡Ha ganado la batalla épica!</p>
+            
+            <div className="battle-summary">
+              <h3>Resumen de la Batalla</h3>
+              <div className="final-stats">
+                <div className="trainer-final-stats">
+                  <h4>{selectedTrainer1.nombre}</h4>
+                  <div className="pokemon-final-lives">
+                    {pokemonDataTrainer1.map((pokemon, index) => (
+                      <div key={pokemon.id} className="pokemon-final-stat">
+                        <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
+                        <span className={livesTrainer1[index] > 0 ? 'alive' : 'fainted'}>
+                          {pokemon.nombre}: {livesTrainer1[index]}/{vidaMaxE1[index]} HP
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="trainer-final-stats">
+                  <h4>{selectedTrainer2.nombre}</h4>
+                  <div className="pokemon-final-lives">
+                    {pokemonDataTrainer2.map((pokemon, index) => (
+                      <div key={pokemon.id} className="pokemon-final-stat">
+                        <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
+                        <span className={livesTrainer2[index] > 0 ? 'alive' : 'fainted'}>
+                          {pokemon.nombre}: {livesTrainer2[index]}/{vidaMaxE2[index]} HP
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="victory-actions">
+              <button className="btn btn-primary btn-lg" onClick={resetBattle}>
+                <span className="btn-icon">🔄</span>
+                Nueva Batalla
+              </button>
+              <button className="btn btn-secondary btn-lg" onClick={() => navigate("/")}>
+                <span className="btn-icon">🏠</span>
+                Volver al Inicio
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Battle Interface */
+        <>
+          {/* Battle Header */}
+          <div className="battle-header">
         <div className="battle-title-section">
           <h1 className="battle-title">
             <span className="title-icon">⚔️</span>
@@ -823,6 +892,8 @@ const BattleView = () => {
           ))}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

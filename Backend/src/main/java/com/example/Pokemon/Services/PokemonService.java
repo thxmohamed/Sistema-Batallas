@@ -229,13 +229,6 @@ public class PokemonService {
                 usuario.setDefensaModificada(nuevaDefensa);
                 // NO actualizar la defensa base
                 usuario.setIdEfectoActivo(efecto.getId());
-
-                System.out.println("===Efecto subir Defensa ===");
-                System.out.println("Defensa base: " + usuario.getDefensaBase());
-                System.out.println("Defensa actual antes: " + defensaActual);
-                System.out.println("Incremento: " + incrementoDefensa);
-                System.out.println("Nuevo defensa: " + nuevaDefensa);
-
                 return usuario;
 
             case "SUBIR_VIDA":

@@ -12,8 +12,8 @@ import './App.css';
 
 function App() {
   return (
-    <AudioProvider>
-      <Router>
+    <Router>
+      <AudioProvider>
         <div className="app-container">
           <nav className="navbar">
             <Link to="/" className="nav-logo">⚡ PokéBattle</Link>
@@ -36,8 +36,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
-      </Router>
-    </AudioProvider>
+      </AudioProvider>
+    </Router>
   );
 }
 
