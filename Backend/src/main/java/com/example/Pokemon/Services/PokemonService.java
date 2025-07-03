@@ -166,11 +166,9 @@ public class PokemonService {
         
         // Intentar obtener de BD, si no existe usar los valores actuales
         Pokemon usuarioDB = null;
-        Pokemon rivalDB = null;
         
         try {
             usuarioDB = getPokemonById(usuario.getId());
-            rivalDB = getPokemonById(rival.getId());
         } catch (Exception e) {
             // En caso de error (ej. pruebas unitarias), usar los valores actuales
         }
@@ -180,19 +178,15 @@ public class PokemonService {
         rival.inicializarSoloEstadisticasBase();
         
         // Usar vida máxima de BD si está disponible, sino usar vida base actual
-        Long vidaMaxRival = (rivalDB != null) ? rivalDB.getVida() : rival.getVidaBase();
         Long vidaMaxUsuario = (usuarioDB != null) ? usuarioDB.getVida() : usuario.getVidaBase();
         
         switch (tipoEfecto) {
             case "DANO_CONTINUO":
-                // Aplicar daño inmediato
-                long danoContinuo = (long) (vidaMaxRival * efecto.getMultiplicador());
-                rival.setVida(Math.max(0, rival.getVida() - danoContinuo));
-                
-                // Configurar efecto continuo
-                rival.setTieneEfectoContinuo(true);
-                rival.setTurnosEfectoContinuo(4); // 4 turnos de duración
-                rival.setIdEfectoActivo(efecto.getId());
+                // IMPORTANTE: Para DANO_CONTINUO, solo retornamos el rival sin modificar
+                // El efecto será manejado a nivel de equipo en BatallaService
+                // Solo marcamos que el efecto se ha aplicado para logs
+                System.out.println("=== EFECTO DANO_CONTINUO APLICADO ===");
+                System.out.println("Efecto será aplicado a todo el equipo rival en futuros turnos");
                 return rival;
 
             case "SUBIR_ATAQUE_PROPIO":
@@ -319,6 +313,44 @@ public class PokemonService {
                 // El efecto ha terminado
                 pokemon.setTieneEfectoContinuo(false);
                 pokemon.setIdEfectoActivo(null);
+            }
+        }
+    }
+
+    /**
+     * Aplica daño continuo a todo un equipo de pokémon
+     * @param equipo Lista de pokémon del equipo afectado
+     * @param efecto Efecto de daño continuo a aplicar
+     */
+    public void aplicarDanoContinuoEquipo(List<Pokemon> equipo, Efecto efecto) {
+        if (efecto.getTipoEfecto() != Efecto.tipoEfecto.DANO_CONTINUO) {
+            return;
+        }
+        
+        System.out.println("=== APLICANDO DAÑO CONTINUO A TODO EL EQUIPO ===");
+        System.out.println("Multiplicador: " + efecto.getMultiplicador());
+        
+        for (Pokemon pokemon : equipo) {
+            if (pokemon.getVida() > 0) { // Solo aplicar a pokémon vivos
+                try {
+                    // Obtener la vida máxima original del pokémon
+                    Pokemon pokemonOriginal = getPokemonById(pokemon.getId());
+                    long vidaMaxima = pokemonOriginal.getVida();
+                    
+                    // Calcular daño como porcentaje de vida máxima
+                    long danoContinuo = (long) (vidaMaxima * efecto.getMultiplicador());
+                    long vidaAnterior = pokemon.getVida();
+                    long vidaNueva = Math.max(0, pokemon.getVida() - danoContinuo);
+                    
+                    pokemon.setVida(vidaNueva);
+                    
+                    System.out.println("Pokémon: " + pokemon.getNombre() + 
+                                     " | Vida anterior: " + vidaAnterior + 
+                                     " | Daño: " + danoContinuo + 
+                                     " | Vida nueva: " + vidaNueva);
+                } catch (Exception e) {
+                    System.err.println("Error aplicando daño continuo a " + pokemon.getNombre() + ": " + e.getMessage());
+                }
             }
         }
     }

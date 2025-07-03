@@ -2387,25 +2387,79 @@ button.selected {
   margin: 0;
 }
 
-/* Responsividad */
-@media (max-width: 768px) {
-  .attack-options-grid {
-    grid-template-columns: 1fr;
+/* ===== ESTILOS PARA INDICADORES DE EFECTOS DE EQUIPO ===== */
+
+.team-effect-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+  animation: pulseEffect 2s infinite;
+}
+
+.team-effect-indicator.poison {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: white;
+  border: 2px solid #7c3aed;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.team-effect-indicator .effect-icon {
+  font-size: 14px;
+}
+
+.team-effect-indicator .effect-text {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.team-effect-indicator .effect-turns {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+@keyframes pulseEffect {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
   }
-  
-  .effects-grid {
-    grid-template-columns: 1fr;
+  50% {
+    transform: scale(1.02);
+    opacity: 0.9;
   }
-  
-  .attack-option {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-  }
-  
-  .attack-details {
-    text-align: center;
-  }
+}
+
+/* Efectos adicionales para cuando un equipo está envenenado */
+.trainer-battlefield.poisoned {
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.trainer-battlefield.poisoned .pokemon-battle-card {
+  border-color: #a855f7;
+}
+
+.trainer-battlefield.poisoned .pokemon-battle-card .health-bar {
+  border: 1px solid #8b5cf6;
+}
+
+/* Animación especial para cuando se aplica daño continuo */
+.poison-damage-animation {
+  animation: poisonDamage 1s ease-in-out;
+}
+
+@keyframes poisonDamage {
+  0% { background-color: transparent; }
+  25% { background-color: rgba(139, 92, 246, 0.3); }
+  50% { background-color: rgba(168, 85, 247, 0.4); }
+  75% { background-color: rgba(139, 92, 246, 0.3); }
+  100% { background-color: transparent; }
 }
 
 

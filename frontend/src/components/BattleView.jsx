@@ -48,6 +48,12 @@ const BattleView = () => {
   const [battleLog, setBattleLog] = useState([]);
   const [winner, setWinner] = useState(null);
 
+  // Estados para efectos de equipo (DANO_CONTINUO)
+  const [teamEffects, setTeamEffects] = useState({
+    team1: { effectId: null, turnsRemaining: 0 },
+    team2: { effectId: null, turnsRemaining: 0 }
+  });
+
   // Audio references
   const audioRef = useRef(null);
   const [audioControls, setAudioControls] = useState(null);
@@ -335,6 +341,11 @@ const BattleView = () => {
         usarEfectoE1: isTeam1Turn && useEffect,
         usarEfectoE2: !isTeam1Turn && useEffect,
         turno: turn,
+        // Incluir efectos de equipo actuales
+        efectoContinuoEquipo1: teamEffects.team1.effectId,
+        efectoContinuoEquipo2: teamEffects.team2.effectId,
+        turnosRestantesEquipo1: teamEffects.team1.turnsRemaining,
+        turnosRestantesEquipo2: teamEffects.team2.turnsRemaining,
       };
 
       const response = await batallaService.combatir(
@@ -346,6 +357,18 @@ const BattleView = () => {
       // Update the pokemon data with response from backend (includes modified stats)
       setPokemonDataTrainer1(response.data.entrenador1);
       setPokemonDataTrainer2(response.data.entrenador2);
+
+      // Actualizar efectos de equipo desde la respuesta del backend
+      setTeamEffects({
+        team1: {
+          effectId: response.data.efectoContinuoEquipo1 || null,
+          turnsRemaining: response.data.turnosRestantesEquipo1 || 0
+        },
+        team2: {
+          effectId: response.data.efectoContinuoEquipo2 || null,
+          turnsRemaining: response.data.turnosRestantesEquipo2 || 0
+        }
+      });
 
       // Update lives
       const previousLives1 = [...livesTrainer1];
@@ -365,6 +388,36 @@ const BattleView = () => {
         setTimeout(() => playSoundEffect('faint'), 500); // Delay for dramatic effect
       }
 
+      // Verificar si hay daño por veneno (comparar vidas antes y después)
+      const damageByPoison1 = newLivesTrainer1.some((vida, index) => vida < previousLives1[index] && vida >= 0);
+      const damageByPoison2 = newLivesTrainer2.some((vida, index) => vida < previousLives2[index] && vida >= 0);
+      
+      // Detectar si el daño fue causado por veneno al inicio del turno
+      if ((damageByPoison1 && teamEffects.team1.effectId) || (damageByPoison2 && teamEffects.team2.effectId)) {
+        const damagedTeam = damageByPoison1 ? selectedTrainer1.nombre : selectedTrainer2.nombre;
+        setBattleLog(prev => [...prev, `💀 El equipo de ${damagedTeam} sufre daño por envenenamiento`]);
+        
+        // Mostrar Pokémon específicos que sufrieron daño
+        if (damageByPoison1) {
+          newLivesTrainer1.forEach((vida, index) => {
+            if (vida < previousLives1[index]) {
+              const pokemon = pokemonDataTrainer1[index];
+              const damage = previousLives1[index] - vida;
+              setBattleLog(prev => [...prev, `🩸 ${pokemon.nombre} pierde ${damage} HP por veneno (${vida}/${vidaMaxE1[index]} HP)`]);
+            }
+          });
+        }
+        if (damageByPoison2) {
+          newLivesTrainer2.forEach((vida, index) => {
+            if (vida < previousLives2[index]) {
+              const pokemon = pokemonDataTrainer2[index];
+              const damage = previousLives2[index] - vida;
+              setBattleLog(prev => [...prev, `🩸 ${pokemon.nombre} pierde ${damage} HP por veneno (${vida}/${vidaMaxE2[index]} HP)`]);
+            }
+          });
+        }
+      }
+
       // Add to battle log
       const currentTrainer = isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre;
       const action = isTeam1Turn ? 
@@ -373,15 +426,41 @@ const BattleView = () => {
       
       setBattleLog(prev => [...prev, `Turno ${turn}: ${currentTrainer} ${action}`]);
 
+      // Añadir mensajes de efectos de equipo al log
+      if (response.data.efectoContinuoEquipo1 && response.data.turnosRestantesEquipo1 > 0 && !teamEffects.team1.effectId) {
+        setBattleLog(prev => [...prev, `¡El equipo de ${selectedTrainer1.nombre} ha sido envenenado! (${response.data.turnosRestantesEquipo1} turnos)`]);
+      }
+      if (response.data.efectoContinuoEquipo2 && response.data.turnosRestantesEquipo2 > 0 && !teamEffects.team2.effectId) {
+        setBattleLog(prev => [...prev, `¡El equipo de ${selectedTrainer2.nombre} ha sido envenenado! (${response.data.turnosRestantesEquipo2} turnos)`]);
+      }
+
+      // Mostrar cuando los efectos terminan
+      if (teamEffects.team1.effectId && !response.data.efectoContinuoEquipo1) {
+        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${selectedTrainer1.nombre} ha terminado.`]);
+      }
+      if (teamEffects.team2.effectId && !response.data.efectoContinuoEquipo2) {
+        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${selectedTrainer2.nombre} ha terminado.`]);
+      }
+
       // Check for winner
       const isTrainer1Lost = newLivesTrainer1.every((vida) => vida <= 0);
       const isTrainer2Lost = newLivesTrainer2.every((vida) => vida <= 0);
 
       if (isTrainer1Lost || isTrainer2Lost) {
         const winnerTrainer = isTrainer1Lost ? selectedTrainer2.nombre : selectedTrainer1.nombre;
+        const defeatedTrainer = isTrainer1Lost ? selectedTrainer1.nombre : selectedTrainer2.nombre;
+        
+        // Determinar si la victoria fue por veneno
+        const victoryByPoison = (isTrainer1Lost && damageByPoison1) || (isTrainer2Lost && damageByPoison2);
         
         setWinner(winnerTrainer);
-        setBattleLog(prev => [...prev, `¡${winnerTrainer} ha ganado la batalla!`]);
+        
+        if (victoryByPoison) {
+          setBattleLog(prev => [...prev, `☠️ ¡${defeatedTrainer} ha sido derrotado por envenenamiento!`]);
+          setBattleLog(prev => [...prev, `🏆 ¡${winnerTrainer} ha ganado la batalla por daño continuo!`]);
+        } else {
+          setBattleLog(prev => [...prev, `¡${winnerTrainer} ha ganado la batalla!`]);
+        }
         
         // Immediate victory audio as backup (in case useEffect doesn't trigger)
         if (audioControls && audioControls.isAudioEnabled) {
@@ -573,7 +652,7 @@ const BattleView = () => {
       {/* Battle Arena */}
       <div className="battle-arena">
         {/* Trainer 1 Side */}
-        <div className={`trainer-battlefield ${isTeam1Turn ? 'active-turn' : 'waiting-turn'}`}>
+        <div className={`trainer-battlefield ${isTeam1Turn ? 'active-turn' : 'waiting-turn'} ${teamEffects.team1.effectId ? 'poisoned' : ''}`}>
           <div className="trainer-info">
             <h2 className="trainer-name">
               <span className="trainer-icon">👨‍💼</span>
@@ -583,6 +662,14 @@ const BattleView = () => {
               <div className="turn-indicator-badge">
                 <span className="badge-icon">⚡</span>
                 Tu turno
+              </div>
+            )}
+            {/* Indicador de efecto continuo para equipo 1 */}
+            {teamEffects.team1.effectId && teamEffects.team1.turnsRemaining > 0 && (
+              <div className="team-effect-indicator poison">
+                <span className="effect-icon">☠️</span>
+                <span className="effect-text">Envenenado</span>
+                <span className="effect-turns">{teamEffects.team1.turnsRemaining} turnos</span>
               </div>
             )}
           </div>
@@ -694,7 +781,7 @@ const BattleView = () => {
         </div>
 
         {/* Trainer 2 Side */}
-        <div className={`trainer-battlefield ${!isTeam1Turn ? 'active-turn' : 'waiting-turn'}`}>
+        <div className={`trainer-battlefield ${!isTeam1Turn ? 'active-turn' : 'waiting-turn'} ${teamEffects.team2.effectId ? 'poisoned' : ''}`}>
           <div className="trainer-info">
             <h2 className="trainer-name">
               <span className="trainer-icon">👩‍💼</span>
@@ -704,6 +791,14 @@ const BattleView = () => {
               <div className="turn-indicator-badge">
                 <span className="badge-icon">⚡</span>
                 Tu turno
+              </div>
+            )}
+            {/* Indicador de efecto continuo para equipo 2 */}
+            {teamEffects.team2.effectId && teamEffects.team2.turnsRemaining > 0 && (
+              <div className="team-effect-indicator poison">
+                <span className="effect-icon">☠️</span>
+                <span className="effect-text">Envenenado</span>
+                <span className="effect-turns">{teamEffects.team2.turnsRemaining} turnos</span>
               </div>
             )}
           </div>

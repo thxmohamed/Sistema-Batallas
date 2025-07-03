@@ -17,6 +17,12 @@ public class BatallaDTO {
     boolean usarEfectoE1; // true = usar efecto, false = usar ataque
     boolean usarEfectoE2; // true = usar efecto, false = usar ataque
     int turno;
+    
+    // Nuevos campos para efectos de equipo (DANO_CONTINUO)
+    private Long efectoContinuoEquipo1; // ID del efecto continuo activo en equipo 1
+    private Long efectoContinuoEquipo2; // ID del efecto continuo activo en equipo 2
+    private int turnosRestantesEquipo1; // Turnos restantes del efecto en equipo 1
+    private int turnosRestantesEquipo2; // Turnos restantes del efecto en equipo 2
 
     public List<Pokemon> getEntrenador1(){
         return entrenador1;
@@ -74,5 +80,38 @@ public class BatallaDTO {
     }
     public void setTurno(int turno){
         this.turno = turno;
+    }
+    
+    // Getters y setters para efectos de equipo
+    public Long getEfectoContinuoEquipo1() {
+        return efectoContinuoEquipo1;
+    }
+    
+    public void setEfectoContinuoEquipo1(Long efectoContinuoEquipo1) {
+        this.efectoContinuoEquipo1 = efectoContinuoEquipo1;
+    }
+    
+    public Long getEfectoContinuoEquipo2() {
+        return efectoContinuoEquipo2;
+    }
+    
+    public void setEfectoContinuoEquipo2(Long efectoContinuoEquipo2) {
+        this.efectoContinuoEquipo2 = efectoContinuoEquipo2;
+    }
+    
+    public int getTurnosRestantesEquipo1() {
+        return turnosRestantesEquipo1;
+    }
+    
+    public void setTurnosRestantesEquipo1(int turnosRestantesEquipo1) {
+        this.turnosRestantesEquipo1 = turnosRestantesEquipo1;
+    }
+    
+    public int getTurnosRestantesEquipo2() {
+        return turnosRestantesEquipo2;
+    }
+    
+    public void setTurnosRestantesEquipo2(int turnosRestantesEquipo2) {
+        this.turnosRestantesEquipo2 = turnosRestantesEquipo2;
     }
 }
