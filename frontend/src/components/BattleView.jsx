@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import pokemonService from "../Services/pokemon.service";
 import batallaService from "../services/batalla.service";
+import AudioManager from "./AudioManager";
+import AudioControls from "./AudioControls";
 import "../App.css";
 
 const BattleView = () => {
@@ -44,9 +46,107 @@ const BattleView = () => {
   const [battleLog, setBattleLog] = useState([]);
   const [winner, setWinner] = useState(null);
 
+  // Audio references
+  const audioRef = useRef(null);
+  const [audioControls, setAudioControls] = useState(null);
+  const [battleMusicPlaying, setBattleMusicPlaying] = useState(false);
+
   // Current team based on turn
   const currentTeam = turn % 2 === 1 ? 1 : 2;
   const isTeam1Turn = currentTeam === 1;
+
+  // Audio ready handler
+  const handleAudioReady = (controls) => {
+    setAudioControls(controls);
+    audioRef.current = controls;
+    
+    // Start battle music when audio is ready
+    if (controls.isAudioEnabled && !battleMusicPlaying && !winner) {
+      controls.playBattleMusic();
+      setBattleMusicPlaying(true);
+    }
+  };
+
+  // SOLUCIÓN DEFINITIVA: Crear instancia global de audio que persista
+  // incluso cuando el componente se desmonte
+  const createPersistentVictoryAudio = () => {
+    // Si ya existe una instancia global, usarla
+    if (!window._victoryAudioInstance) {
+      window._victoryAudioInstance = new Audio('/audio/music/win-theme.mp3');
+      window._victoryAudioInstance.volume = 0.7;
+      window._victoryAudioInstance.loop = false;
+    }
+    return window._victoryAudioInstance;
+  };
+
+  // Handle victory music when winner is set
+  useEffect(() => {
+    if (winner) {
+      
+      // Método 1: Intentar con AudioManager si está disponible
+      if (audioControls && audioControls.isAudioEnabled) {
+        
+        try {
+          audioControls.stopBattleMusic();
+          setBattleMusicPlaying(false);
+        } catch (e) {
+          // Silently handle error
+        }
+        
+        setTimeout(async () => {
+          try {
+            await audioControls.playVictoryMusic();
+          } catch (error) {
+            // Fallback al método persistente
+            const persistentAudio = createPersistentVictoryAudio();
+            persistentAudio.currentTime = 0;
+            persistentAudio.play().catch(() => {
+              // Silently handle error
+            });
+          }
+        }, 500);
+        
+      } else {
+        // Método 2: Usar instancia persistente directamente
+        setTimeout(() => {
+          const persistentAudio = createPersistentVictoryAudio();
+          persistentAudio.currentTime = 0;
+          persistentAudio.play().catch(() => {
+            // Silently handle error
+          });
+        }, 500);
+      }
+    }
+  }, [winner, audioControls]);
+
+  const playSoundEffect = (soundType, element = null) => {
+    if (audioControls) {
+      switch (soundType) {
+        case 'attack':
+          audioControls.playAttackHit();
+          break;
+        case 'effect':
+          audioControls.playEffectUse();
+          break;
+        case 'faint':
+          audioControls.playPokemonFaint();
+          break;
+        case 'click':
+          audioControls.playButtonClick();
+          break;
+        default:
+          break;
+      }
+
+      // Add visual feedback
+      if (element) {
+        element.classList.add('audio-feedback');
+        setTimeout(() => {
+          element.classList.remove('audio-feedback');
+        }, 300);
+      }
+    }
+  };
 
   useEffect(() => {
     const initializeBattle = async () => {
@@ -119,6 +219,8 @@ const BattleView = () => {
   }, [selectedTrainer1, selectedTrainer2]);
 
   const handlePokemonAction = (trainerTeam, pokemonIndex, useEffect) => {
+    playSoundEffect('click');
+    
     if (trainerTeam === 1) {
       setSelectedAttackerE1(pokemonIndex);
       setUseEffectE1(useEffect);
@@ -137,6 +239,8 @@ const BattleView = () => {
   };
 
   const handleAttackSelection = (trainerTeam, attackIndex) => {
+    playSoundEffect('click');
+    
     if (trainerTeam === 1) {
       setSelectedAttackE1(attackIndex);
     } else {
@@ -145,6 +249,8 @@ const BattleView = () => {
   };
 
   const handleTargetSelection = (targetTeam, targetIndex) => {
+    playSoundEffect('click');
+    
     if (isTeam1Turn) {
       setSelectedTargetE1(targetIndex);
     } else {
@@ -172,6 +278,10 @@ const BattleView = () => {
     setBattleInProgress(true);
 
     try {
+      // Play appropriate sound effect
+      const useEffect = isTeam1Turn ? useEffectE1 : useEffectE2;
+      playSoundEffect(useEffect ? 'effect' : 'attack');
+
       // Update Pokemon lives in the data
       // Prepare batalla data maintaining all pokemon properties (including modified stats)
       const updatedEntrenador1 = pokemonDataTrainer1.map((pokemon, index) => ({
@@ -193,7 +303,6 @@ const BattleView = () => {
       // Determinar atacante y receptor basado en el turno actual
       const posicionAtacante = isTeam1Turn ? selectedAttackerE1 : selectedAttackerE2;
       const posicionReceptor = isTeam1Turn ? selectedTargetE1 : selectedTargetE2;
-      const useEffect = isTeam1Turn ? useEffectE1 : useEffectE2;
       
       // Obtener ataque seleccionado o usar el primero por defecto
       const ataqueSeleccionado = isTeam1Turn ? 
@@ -232,11 +341,22 @@ const BattleView = () => {
       setPokemonDataTrainer2(response.data.entrenador2);
 
       // Update lives
+      const previousLives1 = [...livesTrainer1];
+      const previousLives2 = [...livesTrainer2];
+      
       const newLivesTrainer1 = response.data.entrenador1.map((pokemon) => pokemon.vida);
       const newLivesTrainer2 = response.data.entrenador2.map((pokemon) => pokemon.vida);
       
       setLivesTrainer1(newLivesTrainer1);
       setLivesTrainer2(newLivesTrainer2);
+
+      // Check for newly fainted Pokemon and play sound
+      const pokemonFainted = newLivesTrainer1.some((vida, index) => vida === 0 && previousLives1[index] > 0) ||
+                            newLivesTrainer2.some((vida, index) => vida === 0 && previousLives2[index] > 0);
+      
+      if (pokemonFainted) {
+        setTimeout(() => playSoundEffect('faint'), 500); // Delay for dramatic effect
+      }
 
       // Add to battle log
       const currentTrainer = isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre;
@@ -252,8 +372,19 @@ const BattleView = () => {
 
       if (isTrainer1Lost || isTrainer2Lost) {
         const winnerTrainer = isTrainer1Lost ? selectedTrainer2.nombre : selectedTrainer1.nombre;
+        
         setWinner(winnerTrainer);
         setBattleLog(prev => [...prev, `¡${winnerTrainer} ha ganado la batalla!`]);
+        
+        // Immediate victory audio as backup (in case useEffect doesn't trigger)
+        if (audioControls && audioControls.isAudioEnabled) {
+          setTimeout(() => {
+            audioControls.stopBattleMusic();
+            setTimeout(() => {
+              audioControls.playVictoryMusic();
+            }, 200);
+          }, 50);
+        }
       } else {
         setTurn(turn + 1);
       }
@@ -349,6 +480,9 @@ const BattleView = () => {
 
   return (
     <div className="page-container battle-page">
+      {/* Audio Manager */}
+      <AudioManager onAudioReady={handleAudioReady} />
+      
       {/* Battle Header */}
       <div className="battle-header">
         <div className="battle-title-section">
