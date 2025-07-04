@@ -442,6 +442,20 @@ const BattleView = () => {
         setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${selectedTrainer2.nombre} ha terminado.`]);
       }
 
+      // Añadir mensajes de efectos de reducción de estadísticas
+      if (response.data.ataqueReducidoEquipo1) {
+        setBattleLog(prev => [...prev, `⬇️ ¡El ataque de todo el equipo de ${selectedTrainer1.nombre} ha sido reducido!`]);
+      }
+      if (response.data.ataqueReducidoEquipo2) {
+        setBattleLog(prev => [...prev, `⬇️ ¡El ataque de todo el equipo de ${selectedTrainer2.nombre} ha sido reducido!`]);
+      }
+      if (response.data.defensaReducidaEquipo1) {
+        setBattleLog(prev => [...prev, `🛡️⬇️ ¡La defensa de todo el equipo de ${selectedTrainer1.nombre} ha sido reducida!`]);
+      }
+      if (response.data.defensaReducidaEquipo2) {
+        setBattleLog(prev => [...prev, `🛡️⬇️ ¡La defensa de todo el equipo de ${selectedTrainer2.nombre} ha sido reducida!`]);
+      }
+
       // Check for winner
       const isTrainer1Lost = newLivesTrainer1.every((vida) => vida <= 0);
       const isTrainer2Lost = newLivesTrainer2.every((vida) => vida <= 0);

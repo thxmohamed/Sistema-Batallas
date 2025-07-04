@@ -177,6 +177,28 @@ public class BatallaService {
                         batalla.setTurnosRestantesEquipo1(4); // 4 turnos de duración
                         System.out.println("Efecto DANO_CONTINUO configurado para equipo 1 por " + batalla.getTurnosRestantesEquipo1() + " turnos");
                     }
+                } else if (efecto.getTipoEfecto() == Efecto.tipoEfecto.BAJAR_ATAQUE_RIVAL) {
+                    // Aplicar reducción de ataque a todo el equipo rival inmediatamente
+                    pokemonService.aplicarReduccionAtaqueEquipo(equipoReceptor, efecto);
+                    System.out.println("Efecto BAJAR_ATAQUE_RIVAL aplicado a todo el equipo rival");
+                    
+                    // Marcar que el efecto fue aplicado para el frontend
+                    if (esEquipo1) {
+                        batalla.setAtaqueReducidoEquipo2(true); // Equipo 1 reduce ataque de equipo 2
+                    } else {
+                        batalla.setAtaqueReducidoEquipo1(true); // Equipo 2 reduce ataque de equipo 1
+                    }
+                } else if (efecto.getTipoEfecto() == Efecto.tipoEfecto.BAJAR_DEFENSA_RIVAL) {
+                    // Aplicar reducción de defensa a todo el equipo rival inmediatamente
+                    pokemonService.aplicarReduccionDefensaEquipo(equipoReceptor, efecto);
+                    System.out.println("Efecto BAJAR_DEFENSA_RIVAL aplicado a todo el equipo rival");
+                    
+                    // Marcar que el efecto fue aplicado para el frontend
+                    if (esEquipo1) {
+                        batalla.setDefensaReducidaEquipo2(true); // Equipo 1 reduce defensa de equipo 2
+                    } else {
+                        batalla.setDefensaReducidaEquipo1(true); // Equipo 2 reduce defensa de equipo 1
+                    }
                 } else {
                     // Para otros efectos, aplicar normalmente
                     Pokemon pokemonAfectado = pokemonService.aplicarEfecto(atacante, receptor, efecto);
@@ -211,6 +233,12 @@ public class BatallaService {
         batalla.setEfectoE2(null);
         batalla.setUsarEfectoE1(false);
         batalla.setUsarEfectoE2(false);
+        
+        // Limpiar flags de efectos de reducción de estadísticas
+        batalla.setAtaqueReducidoEquipo1(false);
+        batalla.setAtaqueReducidoEquipo2(false);
+        batalla.setDefensaReducidaEquipo1(false);
+        batalla.setDefensaReducidaEquipo2(false);
         
         // Avanzar al siguiente turno
         batalla.setTurno(turnoActual + 1);

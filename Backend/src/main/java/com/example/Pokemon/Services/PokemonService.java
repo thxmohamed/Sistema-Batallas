@@ -243,31 +243,19 @@ public class PokemonService {
                 return usuario;
 
             case "BAJAR_DEFENSA_RIVAL":
-                // Inicializar estadísticas base si es necesario (sin tocar modificadores)
-                rival.inicializarSoloEstadisticasBase();
-                
-                // Aplicar el efecto sobre la defensa modificada actual
-                long defensaActualRival = rival.getDefensaEfectiva();
-                long reduccionDefensa = (long) (rival.getDefensaBase() * (1.0 - efecto.getMultiplicador()));
-                long defensaReducida = defensaActualRival - reduccionDefensa;
-                
-                rival.setDefensaModificada(Math.max(1, defensaReducida)); // Mínimo 1
-                // NO actualizar la defensa base
-                rival.setIdEfectoActivo(efecto.getId());
+                // IMPORTANTE: Para BAJAR_DEFENSA_RIVAL, solo retornamos el rival sin modificar
+                // El efecto será manejado a nivel de equipo en BatallaService
+                // Solo marcamos que el efecto se ha aplicado para logs
+                System.out.println("=== EFECTO BAJAR_DEFENSA_RIVAL APLICADO ===");
+                System.out.println("Efecto será aplicado a todo el equipo rival inmediatamente");
                 return rival;
 
             case "BAJAR_ATAQUE_RIVAL":
-                // Inicializar estadísticas base si es necesario (sin tocar modificadores)
-                rival.inicializarSoloEstadisticasBase();
-                
-                // Aplicar el efecto sobre el ataque modificado actual
-                long ataqueActualRival = rival.getAtaqueEfectivo();
-                long reduccionAtaque = (long) (rival.getAtaqueBase() * (1.0 - efecto.getMultiplicador()));
-                long ataqueReducido = ataqueActualRival - reduccionAtaque;
-                
-                rival.setAtaqueModificado(Math.max(1, ataqueReducido)); // Mínimo 1
-                // NO actualizar el ataque base
-                rival.setIdEfectoActivo(efecto.getId());
+                // IMPORTANTE: Para BAJAR_ATAQUE_RIVAL, solo retornamos el rival sin modificar
+                // El efecto será manejado a nivel de equipo en BatallaService
+                // Solo marcamos que el efecto se ha aplicado para logs
+                System.out.println("=== EFECTO BAJAR_ATAQUE_RIVAL APLICADO ===");
+                System.out.println("Efecto será aplicado a todo el equipo rival inmediatamente");
                 return rival;
 
             // Casos legacy de velocidad - convertir a efectos equivalentes
@@ -350,6 +338,84 @@ public class PokemonService {
                                      " | Vida nueva: " + vidaNueva);
                 } catch (Exception e) {
                     System.err.println("Error aplicando daño continuo a " + pokemon.getNombre() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Aplica reducción de ataque a todo un equipo de pokémon rival
+     * @param equipo Lista de pokémon del equipo rival afectado
+     * @param efecto Efecto de reducción de ataque a aplicar
+     */
+    public void aplicarReduccionAtaqueEquipo(List<Pokemon> equipo, Efecto efecto) {
+        if (efecto.getTipoEfecto() != Efecto.tipoEfecto.BAJAR_ATAQUE_RIVAL) {
+            return;
+        }
+        
+        System.out.println("=== APLICANDO REDUCCIÓN DE ATAQUE A TODO EL EQUIPO RIVAL ===");
+        System.out.println("Multiplicador: " + efecto.getMultiplicador());
+        
+        for (Pokemon pokemon : equipo) {
+            if (pokemon.getVida() > 0) { // Solo aplicar a pokémon vivos
+                try {
+                    // Inicializar estadísticas base si es necesario
+                    pokemon.inicializarSoloEstadisticasBase();
+                    
+                    // Aplicar el efecto sobre el ataque efectivo actual
+                    long ataqueActual = pokemon.getAtaqueEfectivo();
+                    long ataqueReducido = (long) (ataqueActual * efecto.getMultiplicador());
+                    
+                    // Aplicar mínimo de 10
+                    long nuevoAtaque = Math.max(10, ataqueReducido);
+                    pokemon.setAtaqueModificado(nuevoAtaque);
+                    pokemon.setIdEfectoActivo(efecto.getId());
+                    
+                    System.out.println("Pokémon: " + pokemon.getNombre() + 
+                                     " | Ataque anterior: " + ataqueActual + 
+                                     " | Multiplicador: " + efecto.getMultiplicador() + 
+                                     " | Nuevo ataque: " + nuevoAtaque);
+                } catch (Exception e) {
+                    System.err.println("Error aplicando reducción de ataque a " + pokemon.getNombre() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Aplica reducción de defensa a todo un equipo de pokémon rival
+     * @param equipo Lista de pokémon del equipo rival afectado
+     * @param efecto Efecto de reducción de defensa a aplicar
+     */
+    public void aplicarReduccionDefensaEquipo(List<Pokemon> equipo, Efecto efecto) {
+        if (efecto.getTipoEfecto() != Efecto.tipoEfecto.BAJAR_DEFENSA_RIVAL) {
+            return;
+        }
+        
+        System.out.println("=== APLICANDO REDUCCIÓN DE DEFENSA A TODO EL EQUIPO RIVAL ===");
+        System.out.println("Multiplicador: " + efecto.getMultiplicador());
+        
+        for (Pokemon pokemon : equipo) {
+            if (pokemon.getVida() > 0) { // Solo aplicar a pokémon vivos
+                try {
+                    // Inicializar estadísticas base si es necesario
+                    pokemon.inicializarSoloEstadisticasBase();
+                    
+                    // Aplicar el efecto sobre la defensa efectiva actual
+                    long defensaActual = pokemon.getDefensaEfectiva();
+                    long defensaReducida = (long) (defensaActual * efecto.getMultiplicador());
+                    
+                    // Aplicar mínimo de 10
+                    long nuevaDefensa = Math.max(10, defensaReducida);
+                    pokemon.setDefensaModificada(nuevaDefensa);
+                    pokemon.setIdEfectoActivo(efecto.getId());
+                    
+                    System.out.println("Pokémon: " + pokemon.getNombre() + 
+                                     " | Defensa anterior: " + defensaActual + 
+                                     " | Multiplicador: " + efecto.getMultiplicador() + 
+                                     " | Nueva defensa: " + nuevaDefensa);
+                } catch (Exception e) {
+                    System.err.println("Error aplicando reducción de defensa a " + pokemon.getNombre() + ": " + e.getMessage());
                 }
             }
         }

@@ -24,6 +24,12 @@ public class BatallaDTO {
     private int turnosRestantesEquipo1; // Turnos restantes del efecto en equipo 1
     private int turnosRestantesEquipo2; // Turnos restantes del efecto en equipo 2
 
+    // Nuevos campos para efectos de reducción de estadísticas aplicados
+    private boolean ataqueReducidoEquipo1; // Indica si el ataque del equipo 1 fue reducido este turno
+    private boolean ataqueReducidoEquipo2; // Indica si el ataque del equipo 2 fue reducido este turno
+    private boolean defensaReducidaEquipo1; // Indica si la defensa del equipo 1 fue reducida este turno
+    private boolean defensaReducidaEquipo2; // Indica si la defensa del equipo 2 fue reducida este turno
+
     public List<Pokemon> getEntrenador1(){
         return entrenador1;
     }
@@ -113,5 +119,38 @@ public class BatallaDTO {
     
     public void setTurnosRestantesEquipo2(int turnosRestantesEquipo2) {
         this.turnosRestantesEquipo2 = turnosRestantesEquipo2;
+    }
+    
+    // Getters y setters para efectos de reducción de estadísticas
+    public boolean isAtaqueReducidoEquipo1() {
+        return ataqueReducidoEquipo1;
+    }
+    
+    public void setAtaqueReducidoEquipo1(boolean ataqueReducidoEquipo1) {
+        this.ataqueReducidoEquipo1 = ataqueReducidoEquipo1;
+    }
+    
+    public boolean isAtaqueReducidoEquipo2() {
+        return ataqueReducidoEquipo2;
+    }
+    
+    public void setAtaqueReducidoEquipo2(boolean ataqueReducidoEquipo2) {
+        this.ataqueReducidoEquipo2 = ataqueReducidoEquipo2;
+    }
+    
+    public boolean isDefensaReducidaEquipo1() {
+        return defensaReducidaEquipo1;
+    }
+    
+    public void setDefensaReducidaEquipo1(boolean defensaReducidaEquipo1) {
+        this.defensaReducidaEquipo1 = defensaReducidaEquipo1;
+    }
+    
+    public boolean isDefensaReducidaEquipo2() {
+        return defensaReducidaEquipo2;
+    }
+    
+    public void setDefensaReducidaEquipo2(boolean defensaReducidaEquipo2) {
+        this.defensaReducidaEquipo2 = defensaReducidaEquipo2;
     }
 }
