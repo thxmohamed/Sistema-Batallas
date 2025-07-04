@@ -74,13 +74,14 @@ public class BatallaService {
             p.inicializarSoloEstadisticasBase();
         }
         
-        // SEGUNDO: APLICAR DAÑO CONTINUO AL EQUIPO QUE VA A ATACAR (ANTES DE TODO)
+        // SEGUNDO: APLICAR DAÑO CONTINUO AL EQUIPO QUE LO SUFRE (ANTES DE QUE ATAQUE EL OTRO)
+        // Si el equipo 1 va a atacar y TIENE veneno, aplicarlo a sí mismo al inicio de su turno
         if (esEquipo1 && batalla.getEfectoContinuoEquipo1() != null && batalla.getTurnosRestantesEquipo1() > 0) {
-            // El equipo 1 tiene efecto continuo activo y le toca atacar
+            // El equipo 1 tiene efecto continuo activo y es su turno
             try {
                 Efecto efecto = efectoService.findEfectoById(batalla.getEfectoContinuoEquipo1());
                 if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
-                    System.out.println("Aplicando daño continuo al equipo 1 antes de su turno");
+                    System.out.println("Aplicando daño continuo al equipo 1 al inicio de su turno");
                     pokemonService.aplicarDanoContinuoEquipo(entrenador1, efecto);
                 }
                 
@@ -96,12 +97,13 @@ public class BatallaService {
             }
         }
         
+        // Si el equipo 2 va a atacar y TIENE veneno, aplicarlo a sí mismo al inicio de su turno
         if (!esEquipo1 && batalla.getEfectoContinuoEquipo2() != null && batalla.getTurnosRestantesEquipo2() > 0) {
-            // El equipo 2 tiene efecto continuo activo y le toca atacar
+            // El equipo 2 tiene efecto continuo activo y es su turno
             try {
                 Efecto efecto = efectoService.findEfectoById(batalla.getEfectoContinuoEquipo2());
                 if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
-                    System.out.println("Aplicando daño continuo al equipo 2 antes de su turno");
+                    System.out.println("Aplicando daño continuo al equipo 2 al inicio de su turno");
                     pokemonService.aplicarDanoContinuoEquipo(entrenador2, efecto);
                 }
                 

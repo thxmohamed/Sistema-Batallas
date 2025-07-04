@@ -152,7 +152,7 @@ const Information = () => {
           <div className="effectiveness-intro">
             <p>
               Las efectividades determinan qué tan poderosos son los ataques entre diferentes tipos. 
-              Cada tipo es fuerte contra uno y débil contra otro.
+              Cada tipo es fuerte contra uno y débil contra otro. Recuerda que cada tipo es poco efectivo contra sí mismo.
             </p>
           </div>
           

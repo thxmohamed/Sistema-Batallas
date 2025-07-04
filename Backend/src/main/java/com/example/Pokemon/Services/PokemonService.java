@@ -275,7 +275,7 @@ public class PokemonService {
                 long defensaActualVel = rival.getDefensaEfectiva();
                 long reduccionDefensaVel = (long) (rival.getDefensaBase() * (1.0 - efecto.getMultiplicador()));
                 long defensaVelocidad = defensaActualVel - reduccionDefensaVel;
-                rival.setDefensaModificada(Math.max(1, defensaVelocidad));
+                rival.setDefensaModificada(Math.max(50, defensaVelocidad));
                 rival.setIdEfectoActivo(efecto.getId());
                 return rival;
 
@@ -366,8 +366,8 @@ public class PokemonService {
                     long ataqueActual = pokemon.getAtaqueEfectivo();
                     long ataqueReducido = (long) (ataqueActual * efecto.getMultiplicador());
                     
-                    // Aplicar mínimo de 10
-                    long nuevoAtaque = Math.max(10, ataqueReducido);
+                    // Aplicar mínimo de 50
+                    long nuevoAtaque = Math.max(50, ataqueReducido);
                     pokemon.setAtaqueModificado(nuevoAtaque);
                     pokemon.setIdEfectoActivo(efecto.getId());
                     
@@ -405,8 +405,8 @@ public class PokemonService {
                     long defensaActual = pokemon.getDefensaEfectiva();
                     long defensaReducida = (long) (defensaActual * efecto.getMultiplicador());
                     
-                    // Aplicar mínimo de 10
-                    long nuevaDefensa = Math.max(10, defensaReducida);
+                    // Aplicar mínimo de 50
+                    long nuevaDefensa = Math.max(50, defensaReducida);
                     pokemon.setDefensaModificada(nuevaDefensa);
                     pokemon.setIdEfectoActivo(efecto.getId());
                     
