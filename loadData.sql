@@ -12,8 +12,8 @@ INSERT INTO ataque (nombre, tipo_ataque, potencia, descripcion) VALUES
 ('Llamarada', 'FUEGO', 110, 'Crea una estrella de fuego que causa un gran daño al oponente.'),
 
 ('Follaje', 'PLANTA', 40, 'Crea una suave tormenta de hojas que atrapa al rival.'),
-('Látigo cepa', 'PLANTA', 45, 'Golpea al enemigo con un poderoso latigazo.'),
-('Hoja Afilada', 'PLANTA', 60, 'Un ataque de tipo planta que corta al enemigo con hojas afiladas.'),
+('Látigo cepa', 'PLANTA', 55, 'Golpea al enemigo con un poderoso latigazo.'),
+('Hoja Afilada', 'PLANTA', 75, 'Un ataque de tipo planta que corta al enemigo con hojas afiladas.'),
 ('Energibola', 'PLANTA', 90, 'Una bola de energía natural que causa daño al enemigo.'),
 ('Rayo solar', 'PLANTA', 120, 'Un devastador rayo que utiliza la energía del sol para causar un gran daño.'),
 
@@ -29,33 +29,20 @@ INSERT INTO ataque (nombre, tipo_ataque, potencia, descripcion) VALUES
 ('Rayo', 'ELECTRICO', 90, 'Lanza un rayo eléctrico que hace un gran daño.'),
 ('Trueno', 'ELECTRICO', 110, 'Poderoso trueno que tiene un daño masivo.'),
 
-('Placaje', 'NORMAL', 40, 'Un ataque básico donde el Pokémon embiste al enemigo con todo su cuerpo.'),
-('Arañazo', 'NORMAL', 40, 'Ataca al enemigo con garras afiladas o uñas.'),
-('Golpe', 'NORMAL', 50, 'Un simple puñetazo que causa daño moderado.'),
+('Placaje', 'NORMAL', 50, 'Un ataque básico donde el Pokémon embiste al enemigo con todo su cuerpo.'),
 ('Patada', 'NORMAL', 60, 'Una potente patada que impacta directamente al oponente.'),
 ('Golpe cuerpo', 'NORMAL', 85, 'Un ataque físico donde todo el cuerpo se usa como proyectil.'),
-('Megapuño', 'NORMAL', 80, 'Un puñetazo tremendamente poderoso que causa gran daño.'),
-('Destructor', 'NORMAL', 120, 'Un ataque explosivo que puede causar daño crítico.'),
-('Golpe cabeza', 'NORMAL', 70, 'Embiste al enemigo con la cabeza, causando daño considerable.');
+('Megapuño', 'NORMAL', 100, 'Un puñetazo tremendamente poderoso que causa gran daño.'),
+('Gigaimpacto', 'NORMAL', 140, 'Un ataque explosivo que causa un gran daño.');
 
 
 INSERT INTO efecto (nombre, tipo_efecto, multiplicador, descripcion) VALUES
-('Tóxico', 'DANO_CONTINUO', 0.3, 'Causa daño fijo al oponente, reduciendo su vida en un 30%.'),
+('Tóxico', 'DANO_CONTINUO', 0.1, 'Causa daño fijo al equipo rival, reduciendo su vida en un 10% durante 4 turnos.'),
 
-('Danza Espada', 'SUBIR_ATAQUE_PROPIO', 1.3, 'Aumenta el ataque del Pokémon en un 30%.'),
-('Aullido', 'SUBIR_ATAQUE_PROPIO', 1.2, 'Aumenta el ataque de tu Pokémon en un 20%.'),
-('Afilar', 'SUBIR_ATAQUE_PROPIO', 1.1, 'Aumenta el ataque de tu Pokémon en un 10%.'),
-
-('Reserva', 'SUBIR_DEFENSA_PROPIO', 1.1, 'Aumenta la defensa del Pokémon en un 10%.'),
-('Fortaleza', 'SUBIR_DEFENSA_PROPIO', 1.2, 'Aumenta la defensa del Pokémon en un 20%.'),
-('Rizo defensa', 'SUBIR_DEFENSA_PROPIO', 1.3, 'Aumenta la defensa del Pokémon en un 30%.'),
-
-('Malicioso', 'BAJAR_DEFENSA_RIVAL', 1/1.3, 'Baja la defensa del Pokémon rival en un 30%.'),
-('Látigo', 'BAJAR_DEFENSA_RIVAL', 1/1.2, 'Baja la defensa del Pokémon rival en un 20%.'),
-
-('Ojos llorosos', 'BAJAR_ATAQUE_RIVAL', 1/1.2, 'Baja el ataque del Pokémon rival en un 20%.'),
-('Encanto', 'BAJAR_ATAQUE_RIVAL', 1/1.3, 'Baja el ataque del Pokémon rival en un 30%.'),
-
+('Danza Espada', 'SUBIR_ATAQUE_PROPIO', 2, 'Duplica el ataque del usuario.'),
+('Rizo defensa', 'SUBIR_DEFENSA_PROPIO', 2, 'Duplica la defensa del usuario.'),
+('Látigo', 'BAJAR_DEFENSA_RIVAL', 1/1.25, 'Baja la defensa de los Pokémon del equipo rival en un 20%.'),
+('Ojos llorosos', 'BAJAR_ATAQUE_RIVAL', 1/1.25, 'Baja el ataque de los Pokémon del equipo rival en un 20%.'),
 ('Recuperación', 'SUBIR_VIDA', 0.5, 'Recupera el 50% de la vida máxima del usuario.');
 
 
