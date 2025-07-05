@@ -74,64 +74,8 @@ public class BatallaService {
             p.inicializarSoloEstadisticasBase();
         }
         
-        // SEGUNDO: APLICAR DAÑO CONTINUO AL EQUIPO QUE LO SUFRE (ANTES DE QUE ATAQUE EL OTRO)
-        // Si el equipo 1 va a atacar y TIENE veneno, aplicarlo a sí mismo al inicio de su turno
-        if (esEquipo1 && batalla.getEfectoContinuoEquipo1() != null && batalla.getTurnosRestantesEquipo1() > 0) {
-            // El equipo 1 tiene efecto continuo activo y es su turno
-            try {
-                Efecto efecto = efectoService.findEfectoById(batalla.getEfectoContinuoEquipo1());
-                if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
-                    System.out.println("Aplicando daño continuo al equipo 1 al inicio de su turno");
-                    pokemonService.aplicarDanoContinuoEquipo(entrenador1, efecto);
-                }
-                
-                // Reducir turnos restantes
-                batalla.setTurnosRestantesEquipo1(batalla.getTurnosRestantesEquipo1() - 1);
-                
-                // Si no quedan turnos, limpiar el efecto
-                if (batalla.getTurnosRestantesEquipo1() <= 0) {
-                    batalla.setEfectoContinuoEquipo1(null);
-                }
-            } catch (Exception e) {
-                System.err.println("Error aplicando daño continuo al equipo 1: " + e.getMessage());
-            }
-        }
-        
-        // Si el equipo 2 va a atacar y TIENE veneno, aplicarlo a sí mismo al inicio de su turno
-        if (!esEquipo1 && batalla.getEfectoContinuoEquipo2() != null && batalla.getTurnosRestantesEquipo2() > 0) {
-            // El equipo 2 tiene efecto continuo activo y es su turno
-            try {
-                Efecto efecto = efectoService.findEfectoById(batalla.getEfectoContinuoEquipo2());
-                if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
-                    System.out.println("Aplicando daño continuo al equipo 2 al inicio de su turno");
-                    pokemonService.aplicarDanoContinuoEquipo(entrenador2, efecto);
-                }
-                
-                // Reducir turnos restantes
-                batalla.setTurnosRestantesEquipo2(batalla.getTurnosRestantesEquipo2() - 1);
-                
-                // Si no quedan turnos, limpiar el efecto
-                if (batalla.getTurnosRestantesEquipo2() <= 0) {
-                    batalla.setEfectoContinuoEquipo2(null);
-                }
-            } catch (Exception e) {
-                System.err.println("Error aplicando daño continuo al equipo 2: " + e.getMessage());
-            }
-        }
-        
-        // TERCERO: VERIFICAR SI ALGUIEN HA GANADO POR ENVENENAMIENTO
-        boolean equipoEntrenador1Derrotado = entrenador1.stream().allMatch(p -> p.getVida() <= 0);
-        boolean equipoEntrenador2Derrotado = entrenador2.stream().allMatch(p -> p.getVida() <= 0);
-        
-        if (equipoEntrenador1Derrotado || equipoEntrenador2Derrotado) {
-            // La batalla ha terminado por envenenamiento
-            System.out.println("¡Batalla terminada por daño continuo!");
-            // Actualizar los datos y devolver el resultado
-            batalla.setEntrenador1(entrenador1);
-            batalla.setEntrenador2(entrenador2);
-            batalla.setTurno(turnoActual + 1); // Incrementar turno para el frontend
-            return batalla;
-        }
+        // SEGUNDO: No aplicar daño continuo al inicio del turno
+        // El daño continuo se aplicará DESPUÉS del ataque del equipo afectado
         
         Pokemon atacante, receptor;
         List<Pokemon> equipoAtacante, equipoReceptor;
@@ -227,6 +171,68 @@ public class BatallaService {
         // Actualizar el DTO con los equipos modificados
         batalla.setEntrenador1(entrenador1);
         batalla.setEntrenador2(entrenador2);
+        
+        // APLICAR DAÑO CONTINUO DESPUÉS DEL ATAQUE (si el equipo que acaba de atacar tiene veneno)
+        // Esto sigue el flujo: E1 usa tóxico -> E2 ataca -> E2 sufre tóxico
+        if (esEquipo1 && batalla.getEfectoContinuoEquipo1() != null && batalla.getTurnosRestantesEquipo1() > 0) {
+            // El equipo 1 acaba de atacar y tiene efecto continuo activo
+            try {
+                Efecto efecto = efectoService.findEfectoById(batalla.getEfectoContinuoEquipo1());
+                if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
+                    System.out.println("Aplicando daño continuo al equipo 1 después de su ataque (turno " + turnoActual + ")");
+                    pokemonService.aplicarDanoContinuoEquipo(entrenador1, efecto);
+                }
+                
+                // Reducir turnos restantes
+                batalla.setTurnosRestantesEquipo1(batalla.getTurnosRestantesEquipo1() - 1);
+                System.out.println("Turnos restantes para equipo 1: " + batalla.getTurnosRestantesEquipo1());
+                
+                // Si no quedan turnos, limpiar el efecto
+                if (batalla.getTurnosRestantesEquipo1() <= 0) {
+                    batalla.setEfectoContinuoEquipo1(null);
+                    System.out.println("Efecto continuo del equipo 1 ha terminado");
+                }
+            } catch (Exception e) {
+                System.err.println("Error aplicando daño continuo al equipo 1: " + e.getMessage());
+            }
+        }
+        
+        if (!esEquipo1 && batalla.getEfectoContinuoEquipo2() != null && batalla.getTurnosRestantesEquipo2() > 0) {
+            // El equipo 2 acaba de atacar y tiene efecto continuo activo
+            try {
+                Efecto efecto = efectoService.findEfectoById(batalla.getEfectoContinuoEquipo2());
+                if (efecto != null && efecto.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
+                    System.out.println("Aplicando daño continuo al equipo 2 después de su ataque (turno " + turnoActual + ")");
+                    pokemonService.aplicarDanoContinuoEquipo(entrenador2, efecto);
+                }
+                
+                // Reducir turnos restantes
+                batalla.setTurnosRestantesEquipo2(batalla.getTurnosRestantesEquipo2() - 1);
+                System.out.println("Turnos restantes para equipo 2: " + batalla.getTurnosRestantesEquipo2());
+                
+                // Si no quedan turnos, limpiar el efecto
+                if (batalla.getTurnosRestantesEquipo2() <= 0) {
+                    batalla.setEfectoContinuoEquipo2(null);
+                    System.out.println("Efecto continuo del equipo 2 ha terminado");
+                }
+            } catch (Exception e) {
+                System.err.println("Error aplicando daño continuo al equipo 2: " + e.getMessage());
+            }
+        }
+        
+        // Actualizar nuevamente el DTO después del daño continuo
+        batalla.setEntrenador1(entrenador1);
+        batalla.setEntrenador2(entrenador2);
+        
+        // VERIFICAR SI ALGUIEN HA GANADO POR DAÑO CONTINUO (después de aplicarlo)
+        boolean equipoEntrenador1Derrotado = entrenador1.stream().allMatch(p -> p.getVida() <= 0);
+        boolean equipoEntrenador2Derrotado = entrenador2.stream().allMatch(p -> p.getVida() <= 0);
+        
+        if (equipoEntrenador1Derrotado || equipoEntrenador2Derrotado) {
+            System.out.println("¡Batalla terminada por daño continuo!");
+            batalla.setTurno(turnoActual + 1); // Incrementar turno para el frontend
+            return batalla;
+        }
         
         // Limpiar las acciones del turno
         batalla.setataqueE1(null);

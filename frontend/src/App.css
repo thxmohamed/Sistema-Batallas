@@ -597,42 +597,81 @@ h3 {
   font-weight: bold;
 }
 
-/* Target selection */
 .target-selection {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border-radius: 15px;
-  padding: 25px;
-  margin: 20px 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
 }
 
-.target-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.target-button {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
+.target-title {
+  font-size: 1.25rem;
+  font-weight: 700;
   color: white;
-  border: none;
-  padding: 12px 20px;
+  text-align: center;
+  margin-bottom: 2rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.target-options {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.target-option {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid transparent;
   border-radius: 12px;
+  padding: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+  position: relative;
 }
 
-.target-button:hover {
+.target-option:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.target-button.selected {
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
-  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.6);
+.target-option.selected {
+  border-color: var(--primary-color);
+  background: rgba(74, 144, 226, 0.2);
+}
+
+.target-option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.target-sprite {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.target-info {
+  text-align: center;
+}
+
+.target-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.target-health {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 /* Animations */
@@ -1467,7 +1506,8 @@ button.selected {
 }
 
 .btn-icon {
-  font-size: 0.9rem;
+  margin-right: 10px;
+  font-size: 1.2rem;
 }
 
 /* Estado vacío mejorado */
@@ -2146,6 +2186,43 @@ button.selected {
     transform: scale(1.02);
     opacity: 0.9;
   }
+}
+
+.battle-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.pokemon-battle-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  color: #1a202c;
+  position: relative;
+  overflow: hidden;
+}
+
+.pokemon-battle-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.pokemon-battle-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.538);
+  color: #1a202c;
+}
+
+.pokemon-battle-card.fainted {
+  opacity: 0.6;
+  filter: grayscale(1);
+  background: rgba(128, 128, 128, 0.3);
+  color: #4a5568;
 }
 
 /* Efectos adicionales para cuando un equipo está envenenado */
@@ -3615,4 +3692,307 @@ button.selected {
   }
 }
 
+.victory-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+}
 
+.victory-content {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 3rem;
+  text-align: center;
+  max-width: 800px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.victory-title {
+  font-size: 3rem;
+  font-weight: 900;
+  color: white;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  animation: bounce 2s infinite;
+}
+
+.winner-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #FFD700;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.victory-message {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+}
+
+.battle-summary {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+}
+
+.battle-summary h3 {
+  color: white;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.final-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.trainer-final-stats h4 {
+  color: white;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.pokemon-final-lives {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pokemon-final-stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.pokemon-final-stat img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.pokemon-final-stat span.alive {
+  color: #2ECC71;
+  font-weight: 600;
+}
+
+.pokemon-final-stat span.fainted {
+  color: #E74C3C;
+  font-weight: 600;
+}
+
+.victory-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.selection-glow {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+  border-radius: 18px;
+  z-index: -1;
+  opacity: 0.8;
+  animation: pulse 2s infinite;
+}
+
+.pokemon-battle-info {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.pokemon-battle-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 0.5rem 0;
+  text-shadow: none;
+}
+
+.health-section {
+  margin-top: 1rem;
+}
+
+.health-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.health-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.health-fill.healthy {
+  background: linear-gradient(90deg, #27AE60, #2ECC71);
+}
+
+.health-fill.warning {
+  background: linear-gradient(90deg, #F39C12, #E67E22);
+}
+
+.health-fill.critical {
+  background: linear-gradient(90deg, #E74C3C, #C0392B);
+  animation: pulse 1s infinite;
+}
+
+.health-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.action-selection {
+  margin-top: 1rem;
+}
+
+.action-type-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.action-toggle-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  background: white;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.action-toggle-btn:hover {
+  border-color: var(--primary-color);
+  background: #f9fafb;
+}
+
+.action-toggle-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.pokemon-battle-sprite {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.fainted-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.effect-item,
+.attack-item {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.effect-name,
+.attack-name {
+  font-weight: 600;
+  color: #1a202c;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.effect-description {
+  font-size: 0.85rem;
+  color: #4a5568;
+  line-height: 1.4;
+}
+
+.attack-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attack-type {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.battle-log {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.log-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.log-content {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-number {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 2rem;
+}
+
+.log-text {
+  color: white;
+  line-height: 1.4;
+}
