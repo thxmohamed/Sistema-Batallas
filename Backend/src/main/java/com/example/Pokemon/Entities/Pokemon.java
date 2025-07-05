@@ -1,9 +1,12 @@
 package com.example.Pokemon.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "pokemon")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Pokemon {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,6 +42,22 @@ public class Pokemon {
     private Long idAtaque2;
 
     private Long idEfecto;
+    
+    // Relaciones JPA para facilitar las consultas con joins
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idAtaque1", insertable = false, updatable = false)
+    @JsonIgnore
+    private Ataque ataque1;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idAtaque2", insertable = false, updatable = false)
+    @JsonIgnore
+    private Ataque ataque2;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idEfecto", insertable = false, updatable = false)
+    @JsonIgnore
+    private Efecto efecto;
     private int estado; // 1 - primera evolucion, 2 - segunda evolucion, 3 - ultima evolucion, 4 no evoluciona
 
     @Lob
@@ -204,5 +223,30 @@ public class Pokemon {
             return defensa;
         }
         return defensaModificada;
+    }
+
+    // Getters para las relaciones JPA
+    public Ataque getAtaque1() {
+        return ataque1;
+    }
+
+    public void setAtaque1(Ataque ataque1) {
+        this.ataque1 = ataque1;
+    }
+
+    public Ataque getAtaque2() {
+        return ataque2;
+    }
+
+    public void setAtaque2(Ataque ataque2) {
+        this.ataque2 = ataque2;
+    }
+
+    public Efecto getEfecto() {
+        return efecto;
+    }
+
+    public void setEfecto(Efecto efecto) {
+        this.efecto = efecto;
     }
 }

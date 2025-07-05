@@ -1,9 +1,11 @@
 package com.example.Pokemon.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "efecto")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Efecto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

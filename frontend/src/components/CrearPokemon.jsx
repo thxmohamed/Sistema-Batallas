@@ -380,52 +380,77 @@ const CrearPokemon = () => {
                 Efecto Especial
               </label>
               
-              {/* Selected Effect Display */}
-              {formData.idEfecto && (
-                <div className="selected-effect-display">
-                  <div className="selected-effect-card">
-                    {(() => {
-                      const selectedEffect = availableEffects.find(e => e.id === parseInt(formData.idEfecto));
-                      return selectedEffect ? (
-                        <>
-                          <div className="effect-header">
-                            <span className="effect-icon">✨</span>
-                            <span className="effect-name">{selectedEffect.nombre}</span>
-                          </div>
-                          <div className="effect-description">{selectedEffect.descripcion}</div>
-                          <div className="effect-type">{selectedEffect.tipoEfecto}</div>
-                        </>
-                      ) : 'Cargando efecto...';
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* Effects Selector */}
               {loadingEffects ? (
-                <div className="loading-attacks">
+                <div className="loading-selector">
                   <div className="loading-spinner"></div>
-                  <p>Cargando efectos disponibles...</p>
+                  <span>Cargando efectos especiales...</span>
                 </div>
               ) : (
-                <div className="effects-selector">
-                  <div className="effects-grid">
-                    {availableEffects.map(effect => (
-                      <div
-                        key={effect.id}
-                        className={`effect-option ${formData.idEfecto === effect.id.toString() ? 'selected' : ''}`}
-                        onClick={() => setFormData({...formData, idEfecto: effect.id.toString()})}
-                      >
-                        <div className="effect-info">
-                          <span className="effect-name">{effect.nombre}</span>
-                          <span className="effect-type-badge">{effect.tipoEfecto}</span>
-                          <p className="effect-description">{effect.descripcion}</p>
+                <div className="visual-effects-selector">
+                  <input
+                    type="hidden"
+                    name="idEfecto"
+                    value={formData.idEfecto}
+                    required
+                  />
+                  <div className="effects-options-grid">
+                    {availableEffects.map((effect) => {
+                      const isSelected = formData.idEfecto === effect.id.toString();
+                      const effectTypeColors = {
+                        'DANO_CONTINUO': { color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: '🍄' },
+                        'SUBIR_ATAQUE_PROPIO': { color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: '⚔️' },
+                        'SUBIR_DEFENSA_PROPIO': { color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', icon: '🛡️' },
+                        'BAJAR_ATAQUE_RIVAL': { color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.1)', icon: '💥' },
+                        'BAJAR_DEFENSA_RIVAL': { color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.1)', icon: '🔱' },
+                        'SUBIR_VIDA': { color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.1)', icon: '❤️' }
+                      };
+                      const typeStyle = effectTypeColors[effect.tipoEfecto] || { color: '#6b7280', bgColor: 'rgba(107, 114, 128, 0.1)', icon: '✨' };
+                      
+                      return (
+                        <div
+                          key={effect.id}
+                          className={`effect-option-card ${isSelected ? 'selected' : ''}`}
+                          onClick={() => setFormData({ ...formData, idEfecto: effect.id.toString() })}
+                          style={{
+                            borderColor: isSelected ? typeStyle.color : '#e5e7eb',
+                            backgroundColor: isSelected ? typeStyle.bgColor : 'white'
+                          }}
+                        >
+                          <div className="effect-icon-container" style={{ color: typeStyle.color }}>
+                            <span className="effect-main-icon">{typeStyle.icon}</span>
+                          </div>
+                          <div className="effect-content">
+                            <h4 className="effect-name" style={{ color: isSelected ? typeStyle.color : '#374151' }}>
+                              {effect.nombre}
+                            </h4>
+                            <span className="effect-type-badge" style={{ 
+                              backgroundColor: typeStyle.color,
+                              color: 'white'
+                            }}>
+                              {effect.tipoEfecto.replace(/_/g, ' ')}
+                            </span>
+                            <p className="effect-description">{effect.descripcion}</p>
+                            {effect.multiplicador && (
+                              <div className="effect-multiplier" style={{ color: typeStyle.color }}>
+                                <span className="multiplier-icon">📊</span>
+                                Multiplicador: {effect.multiplicador}x
+                              </div>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <div className="selected-indicator" style={{ backgroundColor: typeStyle.color }}>
+                              <span>✓</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   {!formData.idEfecto && (
-                    <p className="selection-hint">Selecciona el efecto especial de tu Pokémon</p>
+                    <div className="selection-hint-box">
+                      <span className="hint-icon">💡</span>
+                      <p>Selecciona un efecto especial para tu Pokémon. Cada efecto tiene diferentes propósitos estratégicos en batalla.</p>
+                    </div>
                   )}
                 </div>
               )}

@@ -1,16 +1,17 @@
 package com.example.Pokemon.Entities;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "ataque")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Ataque {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nombre;
-    enum TipoAtaque {
+    public enum TipoAtaque {
         AGUA,
         FUEGO,
         PLANTA,
@@ -20,7 +21,7 @@ public class Ataque {
     }
     @Enumerated(EnumType.STRING)
 
-    private TipoAtaque tipoAtaque;
+    public TipoAtaque tipoAtaque;
     private int potencia;
     private String descripcion;
 

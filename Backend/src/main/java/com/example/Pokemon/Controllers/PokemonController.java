@@ -2,6 +2,7 @@ package com.example.Pokemon.Controllers;
 
 import com.example.Pokemon.DTO.AplicarEfectoRequest;
 import com.example.Pokemon.DTO.AtaqueRequest;
+import com.example.Pokemon.DTO.PokemonPageResponse;
 import com.example.Pokemon.Entities.Ataque;
 import com.example.Pokemon.Entities.Efecto;
 import com.example.Pokemon.Entities.Pokemon;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -80,22 +82,40 @@ public class PokemonController {
 
     @GetMapping("/ataques/{id}")
     public ResponseEntity<List<Ataque>> getPokemonAtaques(@PathVariable Long id) {
-        Pokemon pokemon = pokemonService.getPokemonById(id);
-        List<Ataque> ataques = pokemonService.getPokemonAtaques(pokemon);
-        if(!ataques.isEmpty()) {
-            return new ResponseEntity<>(ataques, HttpStatus.OK);
+        try {
+            Pokemon pokemon = pokemonService.getPokemonById(id);
+            if (pokemon == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            List<Ataque> ataques = pokemonService.getPokemonAtaques(pokemon);
+            if(!ataques.isEmpty()) {
+                return ResponseEntity.ok(ataques);
+            }
+            return ResponseEntity.ok(new ArrayList<>());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
-        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
     }
 
     @GetMapping("/efecto/{id}")
     public ResponseEntity<Efecto> getPokemonEfecto(@PathVariable Long id) {
-        Pokemon pokemon = pokemonService.getPokemonById(id);
-        Efecto efecto = pokemonService.getPokemonEfecto(pokemon);
-        if(efecto == null) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        try {
+            Pokemon pokemon = pokemonService.getPokemonById(id);
+            if (pokemon == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Efecto efecto = pokemonService.getPokemonEfecto(pokemon);
+            if(efecto == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(efecto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
-        return new ResponseEntity<>(efecto, HttpStatus.OK);
     }
 
     @PostMapping("/atacar")
@@ -120,7 +140,7 @@ public class PokemonController {
 
         rival = pokemonService.aplicarEfecto(usuario, rival, efecto);
         if(rival == null) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(rival);
     }
@@ -128,5 +148,18 @@ public class PokemonController {
     @GetMapping("/tipo/{tipo}")
     public List<Pokemon> obtenerPokemonPorTipo(@PathVariable Pokemon.TipoPokemon tipo) {
         return pokemonService.obtenerPokemonPorTipo(tipo);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<PokemonPageResponse> searchPokemon(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) String efecto,
+            @RequestParam(required = false) String tipoAtaque
+    ) {
+        PokemonPageResponse response = pokemonService.searchPokemon(page, size, nombre, tipo, efecto, tipoAtaque);
+        return ResponseEntity.ok(response);
     }
 }

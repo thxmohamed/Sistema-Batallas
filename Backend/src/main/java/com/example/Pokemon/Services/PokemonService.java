@@ -1,5 +1,6 @@
 package com.example.Pokemon.Services;
 
+import com.example.Pokemon.DTO.PokemonPageResponse;
 import com.example.Pokemon.Entities.Ataque;
 import com.example.Pokemon.Entities.Efecto;
 import com.example.Pokemon.Entities.Pokemon;
@@ -8,6 +9,10 @@ import com.example.Pokemon.Repositories.EfectoRepository;
 import com.example.Pokemon.Repositories.PokemonRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -75,19 +80,64 @@ public class PokemonService {
 
     public List<Ataque> getPokemonAtaques(Pokemon pokemon) {
         List<Ataque> ataques = new ArrayList<>();
-        Optional<Ataque> ataque1 =  ataqueRepository.findById(pokemon.getIdAtaque1());
-        Optional<Ataque> ataque2 =  ataqueRepository.findById(pokemon.getIdAtaque2());
-        if(ataque1.isPresent() && ataque2.isPresent()){
-            ataques.add(ataque1.get());
-            ataques.add(ataque2.get());
+        
+        if (pokemon == null) {
+            System.err.println("Pokemon es null en getPokemonAtaques");
             return ataques;
         }
+        
+        try {
+            System.out.println("Obteniendo ataques para Pokemon: " + pokemon.getNombre() + 
+                             " (ID: " + pokemon.getId() + 
+                             ", AtaqueID1: " + pokemon.getIdAtaque1() + 
+                             ", AtaqueID2: " + pokemon.getIdAtaque2() + ")");
+            
+            // Verificar si los IDs de ataque no son nulos antes de buscar
+            if (pokemon.getIdAtaque1() != null) {
+                Optional<Ataque> ataque1 = ataqueRepository.findById(pokemon.getIdAtaque1());
+                if(ataque1.isPresent()) {
+                    ataques.add(ataque1.get());
+                    System.out.println("Ataque 1 encontrado: " + ataque1.get().getNombre());
+                } else {
+                    System.err.println("Ataque 1 no encontrado con ID: " + pokemon.getIdAtaque1());
+                }
+            } else {
+                System.err.println("Pokemon " + pokemon.getNombre() + " no tiene ID de ataque 1");
+            }
+            
+            if (pokemon.getIdAtaque2() != null) {
+                Optional<Ataque> ataque2 = ataqueRepository.findById(pokemon.getIdAtaque2());
+                if(ataque2.isPresent()) {
+                    ataques.add(ataque2.get());
+                    System.out.println("Ataque 2 encontrado: " + ataque2.get().getNombre());
+                } else {
+                    System.err.println("Ataque 2 no encontrado con ID: " + pokemon.getIdAtaque2());
+                }
+            } else {
+                System.err.println("Pokemon " + pokemon.getNombre() + " no tiene ID de ataque 2");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error al obtener ataques del Pokémon " + pokemon.getNombre() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("Retornando " + ataques.size() + " ataques para " + pokemon.getNombre());
         return ataques;
     }
 
     public Efecto getPokemonEfecto(Pokemon pokemon) {
-        Optional<Efecto> efecto = efectoRepository.findById(pokemon.getIdEfecto());
-        return efecto.orElse(null);
+        if (pokemon == null || pokemon.getIdEfecto() == null) {
+            return null;
+        }
+        
+        try {
+            Optional<Efecto> efecto = efectoRepository.findById(pokemon.getIdEfecto());
+            return efecto.orElse(null);
+        } catch (Exception e) {
+            System.err.println("Error al obtener efecto del Pokémon " + pokemon.getNombre() + ": " + e.getMessage());
+            return null;
+        }
     }
 
     public Pokemon atacar(Pokemon usuario, Pokemon rival, Ataque ataque) {
@@ -425,4 +475,80 @@ public class PokemonService {
         return pokemonRepository.findByTipoPokemon(tipoPokemon);
     }
 
+    /**
+     * Búsqueda paginada de Pokémon con filtros avanzados
+     */
+    public PokemonPageResponse searchPokemon(int page, int size, String nombre, String tipo, String efecto, String tipoAtaque) {
+        Pageable pageable = PageRequest.of(page, size);
+        
+        // Construir especificación para filtros dinámicos
+        Specification<Pokemon> spec = Specification.where(null);
+        
+        // Filtro por nombre (búsqueda parcial, case insensitive)
+        if (nombre != null && !nombre.trim().isEmpty()) {
+            spec = spec.and((root, query, criteriaBuilder) -> 
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), 
+                    "%" + nombre.toLowerCase() + "%"));
+        }
+        
+        // Filtro por tipo de Pokémon
+        if (tipo != null && !tipo.trim().isEmpty()) {
+            try {
+                Pokemon.TipoPokemon tipoPokemon = Pokemon.TipoPokemon.valueOf(tipo.toUpperCase());
+                spec = spec.and((root, query, criteriaBuilder) -> 
+                    criteriaBuilder.equal(root.get("tipoPokemon"), tipoPokemon));
+            } catch (IllegalArgumentException e) {
+                // Tipo inválido, ignorar filtro
+            }
+        }
+        
+        // Filtro por tipo de efecto - usar IDs directamente
+        if (efecto != null && !efecto.trim().isEmpty()) {
+            try {
+                Efecto.tipoEfecto tipoEfecto = Efecto.tipoEfecto.valueOf(efecto.toUpperCase());
+                // Buscar IDs de efectos que coincidan con el tipo
+                List<Efecto> efectos = efectoRepository.findByTipoEfecto(tipoEfecto);
+                List<Long> efectoIds = efectos.stream().map(Efecto::getId).toList();
+                
+                if (!efectoIds.isEmpty()) {
+                    spec = spec.and((root, query, criteriaBuilder) -> 
+                        root.get("idEfecto").in(efectoIds));
+                }
+            } catch (IllegalArgumentException e) {
+                // Tipo de efecto inválido, ignorar filtro
+            }
+        }
+        
+        // Filtro por tipo de ataque - usar IDs directamente
+        if (tipoAtaque != null && !tipoAtaque.trim().isEmpty()) {
+            try {
+                Ataque.TipoAtaque tipoAtaqueEnum = Ataque.TipoAtaque.valueOf(tipoAtaque.toUpperCase());
+                // Buscar IDs de ataques que coincidan con el tipo
+                List<Ataque> ataques = ataqueRepository.findByTipoAtaque(tipoAtaqueEnum);
+                List<Long> ataqueIds = ataques.stream().map(Ataque::getId).toList();
+                
+                if (!ataqueIds.isEmpty()) {
+                    spec = spec.and((root, query, criteriaBuilder) -> 
+                        criteriaBuilder.or(
+                            root.get("idAtaque1").in(ataqueIds),
+                            root.get("idAtaque2").in(ataqueIds)
+                        ));
+                }
+            } catch (IllegalArgumentException e) {
+                // Tipo de ataque inválido, ignorar filtro
+            }
+        }
+        
+        // Ejecutar búsqueda paginada
+        Page<Pokemon> pokemonPage = pokemonRepository.findAll(spec, pageable);
+        
+        // Convertir a DTO de respuesta
+        return new PokemonPageResponse(
+            pokemonPage.getContent(),
+            pokemonPage.getNumber(),
+            pokemonPage.getSize(),
+            pokemonPage.getTotalElements(),
+            pokemonPage.getTotalPages()
+        );
+    }
 }

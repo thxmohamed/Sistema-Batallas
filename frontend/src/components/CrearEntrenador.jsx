@@ -1,41 +1,166 @@
-import React, { useState, useEffect } from "react";
-import pokemonService from "../Services/pokemon.service";
+import React, { useState, useEffect, useCallback } from "react";
+import pokemonService from "../services/pokemon.service";
 import entrenadorService from "../services/entrenador.service";
 import "../App.css";
 
 const CrearEntrenador = () => {
-  const [pokemons, setPokemons] = useState([]);
+  const [pokemonData, setPokemonData] = useState({
+    content: [],
+    page: 0,
+    size: 12,
+    totalElements: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false
+  });
+  
+  const [filters, setFilters] = useState({
+    nombre: '',
+    tipo: '',
+    efecto: '',
+    tipoAtaque: ''
+  });
+  
   const [selectedPokemons, setSelectedPokemons] = useState([]);
   const [trainerName, setTrainerName] = useState("");
   const [pokemonDetails, setPokemonDetails] = useState(null);
-  const [tipoFiltro, setTipoFiltro] = useState("");
-  const [tiposDisponibles, setTiposDisponibles] = useState(["AGUA", "FUEGO", "PLANTA", "TIERRA", "ELECTRICO"]);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  
+  // Available options for filters
+  const [tiposDisponibles] = useState(["AGUA", "FUEGO", "PLANTA", "TIERRA", "ELECTRICO"]);
+  const [efectosDisponibles] = useState(["DANO_CONTINUO", "SUBIR_ATAQUE_PROPIO", "SUBIR_DEFENSA_PROPIO", "BAJAR_ATAQUE_RIVAL", "BAJAR_DEFENSA_RIVAL", "SUBIR_VIDA"]);
+  const [tiposAtaqueDisponibles] = useState(["AGUA", "FUEGO", "PLANTA", "TIERRA", "ELECTRICO"]);
 
-  // Fetch all Pokémon or filter by type
-  useEffect(() => {
-    const fetchPokemons = async () => {
-      try {
-        setLoading(true);
-        let response;
-        if (tipoFiltro) {
-          response = await pokemonService.getByTipo(tipoFiltro);
-        } else {
-          response = await pokemonService.getAll();
-        }
-        setPokemons(response.data);
-      } catch (error) {
-        console.error("Error al obtener los Pokémon:", error);
-        setErrorMessage("Error al cargar los Pokémon. Por favor, intenta nuevamente.");
-      } finally {
-        setLoading(false);
+  // Debounced search function
+  const [searchTimeout, setSearchTimeout] = useState(null);
+
+  // Fetch Pokémon with filters and pagination
+  const fetchPokemons = useCallback(async (page = 0, resetData = false) => {
+    try {
+      setLoading(true);
+      
+      const searchParams = {
+        page,
+        size: pokemonData.size,
+        ...filters
+      };
+      
+      const response = await pokemonService.searchPokemon(searchParams);
+      
+      if (resetData || page === 0) {
+        setPokemonData(response.data);
+      } else {
+        // Para cargar más (si implementamos scroll infinito en el futuro)
+        setPokemonData(prev => ({
+          ...response.data,
+          content: [...prev.content, ...response.data.content]
+        }));
       }
-    };
+    } catch (error) {
+      console.error("Error al obtener los Pokémon:", error);
+      setErrorMessage("Error al cargar los Pokémon. Por favor, intenta nuevamente.");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, pokemonData.size]);
 
-    fetchPokemons();
-  }, [tipoFiltro]);
+  // Initial load and when filters change
+  useEffect(() => {
+    fetchPokemons(0, true);
+  }, [filters]);
+
+  // Debounced search for name filter
+  const handleNameFilterChange = (value) => {
+    setFilters(prev => ({ ...prev, nombre: value }));
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      // The search will be triggered by the useEffect above
+    }, 500);
+    
+    setSearchTimeout(timeout);
+  };
+
+  // Handle other filter changes
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      nombre: '',
+      tipo: '',
+      efecto: '',
+      tipoAtaque: ''
+    });
+  };
+
+  // Pagination functions
+  const goToPage = (page) => {
+    fetchPokemons(page, true);
+  };
+
+  const nextPage = () => {
+    if (pokemonData.hasNext) {
+      goToPage(pokemonData.page + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (pokemonData.hasPrevious) {
+      goToPage(pokemonData.page - 1);
+    }
+  };
+
+  // Pagination range calculator
+  const getPaginationRange = () => {
+    const { page, totalPages } = pokemonData;
+    
+    // Validar que tenemos datos válidos
+    if (!page && page !== 0 || !totalPages || totalPages <= 0) {
+      return [];
+    }
+    
+    const delta = 2; // Number of pages to show on each side of current page
+    const range = [];
+    const rangeWithDots = [];
+
+    for (let i = Math.max(0, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+
+    if (range.length === 0) {
+      return [];
+    }
+
+    if (range[0] > 0) {
+      if (range[0] > 1) {
+        rangeWithDots.push(0, '...');
+      } else {
+        rangeWithDots.push(0);
+      }
+    }
+
+    rangeWithDots.push(...range);
+
+    if (range[range.length - 1] < totalPages - 1) {
+      if (range[range.length - 1] < totalPages - 2) {
+        rangeWithDots.push('...', totalPages - 1);
+      } else {
+        rangeWithDots.push(totalPages - 1);
+      }
+    }
+
+    return rangeWithDots;
+  };
 
   // Handle Pokémon selection
   const togglePokemonSelection = (pokemonId) => {
@@ -174,25 +299,143 @@ const CrearEntrenador = () => {
           </div>
         </div>
 
-        {/* Type Filter */}
-        <div className="filter-section">
-          <div className="form-group">
-            <label className="form-label">
-              <span className="label-icon">🔍</span>
-              Filtrar por tipo
-            </label>
-            <select 
-              className="form-select" 
-              onChange={(e) => setTipoFiltro(e.target.value)} 
-              value={tipoFiltro}
+        {/* Advanced Filters Section */}
+        <div className="filters-section">
+          <div className="section-header">
+            <h3 className="section-title">
+              <span className="title-icon">🔍</span>
+              Filtros de Búsqueda
+            </h3>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={clearFilters}
+              title="Limpiar todos los filtros"
             >
-              <option value="">🌟 Todos los tipos</option>
-              {tiposDisponibles.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {getTypeIcon(tipo)} {tipo}
-                </option>
-              ))}
-            </select>
+              <span className="btn-icon">🧹</span>
+              Limpiar
+            </button>
+          </div>
+          
+          <div className="filters-grid">
+            {/* Name Search */}
+            <div className="form-group">
+              <label className="form-label">
+                <span className="label-icon">🏷️</span>
+                Buscar por nombre
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                value={filters.nombre}
+                onChange={(e) => handleNameFilterChange(e.target.value)}
+                placeholder="Ej: Pikachu..."
+              />
+              <small className="form-hint">Búsqueda en tiempo real</small>
+            </div>
+
+            {/* Type Filter */}
+            <div className="form-group">
+              <label className="form-label">
+                <span className="label-icon">🌟</span>
+                Tipo de Pokémon
+              </label>
+              <select 
+                className="form-select" 
+                value={filters.tipo}
+                onChange={(e) => handleFilterChange('tipo', e.target.value)}
+              >
+                <option value="">🌟 Todos los tipos</option>
+                {tiposDisponibles.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {getTypeIcon(tipo)} {tipo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Effect Filter */}
+            <div className="form-group">
+              <label className="form-label">
+                <span className="label-icon">✨</span>
+                Efecto Especial
+              </label>
+              <select 
+                className="form-select" 
+                value={filters.efecto}
+                onChange={(e) => handleFilterChange('efecto', e.target.value)}
+              >
+                <option value="">✨ Todos los efectos</option>
+                {efectosDisponibles.map((efecto) => (
+                  <option key={efecto} value={efecto}>
+                    {getEffectIcon(efecto)} {efecto.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Attack Type Filter */}
+            <div className="form-group">
+              <label className="form-label">
+                <span className="label-icon">⚔️</span>
+                Tipo de Ataque
+              </label>
+              <select 
+                className="form-select" 
+                value={filters.tipoAtaque}
+                onChange={(e) => handleFilterChange('tipoAtaque', e.target.value)}
+              >
+                <option value="">⚔️ Todos los ataques</option>
+                {tiposAtaqueDisponibles.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {getTypeIcon(tipo)} {tipo}
+                  </option>
+                ))}
+              </select>
+              <small className="form-hint">Pokémon que tengan al menos un ataque de este tipo</small>
+            </div>
+          </div>
+
+          {/* Search Results Info */}
+          <div className="search-info">
+            <div className="results-count">
+              <span className="count-icon">📊</span>
+              <span>
+                {loading ? "Buscando..." : 
+                  `${pokemonData.totalElements} Pokémon encontrados`
+                }
+              </span>
+            </div>
+            {(filters.nombre || filters.tipo || filters.efecto || filters.tipoAtaque) && (
+              <div className="active-filters">
+                <span className="filters-label">Filtros activos:</span>
+                <div className="filter-tags">
+                  {filters.nombre && (
+                    <span className="filter-tag">
+                      🏷️ "{filters.nombre}"
+                      <button onClick={() => handleFilterChange('nombre', '')}>✕</button>
+                    </span>
+                  )}
+                  {filters.tipo && (
+                    <span className="filter-tag">
+                      {getTypeIcon(filters.tipo)} {filters.tipo}
+                      <button onClick={() => handleFilterChange('tipo', '')}>✕</button>
+                    </span>
+                  )}
+                  {filters.efecto && (
+                    <span className="filter-tag">
+                      {getEffectIcon(filters.efecto)} {filters.efecto.replace(/_/g, ' ')}
+                      <button onClick={() => handleFilterChange('efecto', '')}>✕</button>
+                    </span>
+                  )}
+                  {filters.tipoAtaque && (
+                    <span className="filter-tag">
+                      ⚔️ {filters.tipoAtaque}
+                      <button onClick={() => handleFilterChange('tipoAtaque', '')}>✕</button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -207,7 +450,7 @@ const CrearEntrenador = () => {
         {/* Pokemon Grid */}
         {!loading && (
           <div className="pokemon-grid">
-            {pokemons.map((pokemon) => (
+            {pokemonData.content.map((pokemon) => (
               <div 
                 key={pokemon.id} 
                 className={`pokemon-card ${selectedPokemons.includes(pokemon.id) ? 'selected' : ''}`}
@@ -278,11 +521,63 @@ const CrearEntrenador = () => {
           </div>
         )}
 
-        {!loading && pokemons.length === 0 && (
+        {/* Pagination */}
+        {!loading && pokemonData.totalPages > 1 && (
+          <div className="pagination-section">
+            <div className="pagination-info">
+              <span>
+                Página {pokemonData.page + 1} de {pokemonData.totalPages} 
+                ({pokemonData.totalElements} Pokémon en total)
+              </span>
+            </div>
+            
+            <div className="pagination-controls">
+              <button 
+                className="btn btn-secondary btn-sm"
+                onClick={prevPage}
+                disabled={!pokemonData.hasPrevious}
+              >
+                <span className="btn-icon">⬅️</span>
+                Anterior
+              </button>
+              
+              <div className="page-numbers">
+                {getPaginationRange().map((pageNum, index) => (
+                  pageNum === '...' ? (
+                    <span key={index} className="page-ellipsis">...</span>
+                  ) : (
+                    <button
+                      key={pageNum}
+                      className={`btn btn-sm ${pokemonData.page === pageNum ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => goToPage(pageNum)}
+                    >
+                      {pageNum + 1}
+                    </button>
+                  )
+                ))}
+              </div>
+              
+              <button 
+                className="btn btn-secondary btn-sm"
+                onClick={nextPage}
+                disabled={!pokemonData.hasNext}
+              >
+                Siguiente
+                <span className="btn-icon">➡️</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && pokemonData.content.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">🔍</div>
             <h3>No se encontraron Pokémon</h3>
-            <p>Intenta cambiar el filtro de tipo para ver más opciones</p>
+            <p>Intenta ajustar los filtros para ver más opciones</p>
+            <button className="btn btn-primary btn-sm" onClick={clearFilters}>
+              <span className="btn-icon">🧹</span>
+              Limpiar filtros
+            </button>
           </div>
         )}
       </div>
@@ -470,6 +765,19 @@ const getTypeIcon = (tipo) => {
     ELECTRICO: "⚡"
   };
   return icons[tipo] || "⭐";
+};
+
+// Helper function for effect icons
+const getEffectIcon = (efecto) => {
+  const icons = {
+    DANO_CONTINUO: "🍄",
+    SUBIR_ATAQUE_PROPIO: "⚔️",
+    SUBIR_DEFENSA_PROPIO: "🛡️",
+    BAJAR_ATAQUE_RIVAL: "💥",
+    BAJAR_DEFENSA_RIVAL: "🔱",
+    SUBIR_VIDA: "❤️"
+  };
+  return icons[efecto] || "✨";
 };
 
 export default CrearEntrenador;

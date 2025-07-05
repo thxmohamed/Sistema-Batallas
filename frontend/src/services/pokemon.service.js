@@ -48,6 +48,29 @@ const getAllEfectos = () => {
     return httpClient.get('/efecto/')
 }
 
+const searchPokemon = (params) => {
+    const { page = 0, size = 12, nombre, tipo, efecto, tipoAtaque } = params;
+    
+    const searchParams = new URLSearchParams();
+    searchParams.append('page', page);
+    searchParams.append('size', size);
+    
+    if (nombre && nombre.trim()) {
+        searchParams.append('nombre', nombre.trim());
+    }
+    if (tipo && tipo.trim()) {
+        searchParams.append('tipo', tipo.trim());
+    }
+    if (efecto && efecto.trim()) {
+        searchParams.append('efecto', efecto.trim());
+    }
+    if (tipoAtaque && tipoAtaque.trim()) {
+        searchParams.append('tipoAtaque', tipoAtaque.trim());
+    }
+    
+    return httpClient.get(`/pokemon/search?${searchParams.toString()}`);
+}
+
 export default {
     getAll,
     getById, 
@@ -59,5 +82,6 @@ export default {
     aplicarEfecto,
     getByTipo,
     getAllAtaques,
-    getAllEfectos
+    getAllEfectos,
+    searchPokemon
 }
