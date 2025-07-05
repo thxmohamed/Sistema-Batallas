@@ -359,6 +359,25 @@ h3 {
   font-size: 1.1rem;
 }
 
+.stat-bar {
+  background: #e5e7eb; /* gris claro */
+  border-radius: 6px;
+  overflow: hidden;
+  height: 16px;
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.stat-fill {
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* Colores de stats */
+.stat-hp { background: #f87171; }     /* rojo */
+.stat-attack { background: #facc15; } /* amarillo */
+.stat-defense { background: #60a5fa; } /* azul */
+
 /* Battle specific styles */
 .battle-container {
   display: grid;
@@ -403,6 +422,14 @@ h3 {
   text-align: center;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   border: 2px solid transparent;
+}
+
+.attack-description,
+.effect-detail-description {
+  color: #444;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  line-height: 1.4;
 }
 
 .attack-button::before {
@@ -934,6 +961,35 @@ button.selected {
   align-items: center;
   z-index: 1000;
 }
+
+.modal-content {
+  background: #fff; /* FONDO CLARO para contenido */
+  color: #111;      /* Texto oscuro sobre fondo claro */
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  max-height: 90vh;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  color: #555;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #000;
+}
+
 
 .modal {
   background-color: #fff;
