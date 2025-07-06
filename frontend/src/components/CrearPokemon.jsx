@@ -397,7 +397,7 @@ const CrearPokemon = () => {
                     {availableEffects.map((effect) => {
                       const isSelected = formData.idEfecto === effect.id.toString();
                       const effectTypeColors = {
-                        'DANO_CONTINUO': { color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: '🍄' },
+                        'DANO_CONTINUO': { color: '#8b5cf1', bgColor: 'rgba(139, 92, 246, 0.1)', icon: '🍄' },
                         'SUBIR_ATAQUE_PROPIO': { color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: '⚔️' },
                         'SUBIR_DEFENSA_PROPIO': { color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', icon: '🛡️' },
                         'BAJAR_ATAQUE_RIVAL': { color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.1)', icon: '💥' },
@@ -509,7 +509,7 @@ const CrearPokemon = () => {
         <div className="info-card">
           <h3 className="info-title">
             <span className="title-icon">💡</span>
-            Consejos para crear un Pokémon balanceado
+            Consejos para crear un Pokémon balanceado:
           </h3>
           <ul className="tips-list">
             <li>
