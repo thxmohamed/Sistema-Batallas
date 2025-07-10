@@ -9,6 +9,11 @@ import java.util.List;
 public class BatallaDTO {
     List<Pokemon> entrenador1;
     List<Pokemon> entrenador2;
+    
+    // Nombres de los equipos para batallas aleatorias
+    private String nombreEquipo1;
+    private String nombreEquipo2;
+    
     Ataque ataqueE1;
     Ataque ataqueE2;
     Efecto efectoE1;
@@ -152,5 +157,22 @@ public class BatallaDTO {
     
     public void setDefensaReducidaEquipo2(boolean defensaReducidaEquipo2) {
         this.defensaReducidaEquipo2 = defensaReducidaEquipo2;
+    }
+    
+    // Getters y setters para nombres de equipos
+    public String getNombreEquipo1() {
+        return nombreEquipo1;
+    }
+    
+    public void setNombreEquipo1(String nombreEquipo1) {
+        this.nombreEquipo1 = nombreEquipo1;
+    }
+    
+    public String getNombreEquipo2() {
+        return nombreEquipo2;
+    }
+    
+    public void setNombreEquipo2(String nombreEquipo2) {
+        this.nombreEquipo2 = nombreEquipo2;
     }
 }

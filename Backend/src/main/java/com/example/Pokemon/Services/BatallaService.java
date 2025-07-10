@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,6 +28,16 @@ public class BatallaService {
     @Autowired
     EfectoService efectoService;
 
+    // Nombres aleatorios para equipos
+    private static final String[] NOMBRES_EQUIPO_1 = {
+        "Equipo Fuego", "Dragones Salvajes", "Campeones", "Titanes Guardianes", "Leyendas Ardientes", "Conquistadores"
+    };
+    
+    private static final String[] NOMBRES_EQUIPO_2 = {
+        "Equipo Agua", "Leyendas Místicas", "Guardianes", "Maestros", 
+        "Defensores del Sur", "Héroes Acuáticos", "Estrategas"
+    };
+
     public List<Batalla> getBatallas() {
         return batallaRepository.findAll();
     }
@@ -36,6 +49,114 @@ public class BatallaService {
 
     public Batalla createBatalla(Batalla batalla) {
         return batallaRepository.save(batalla);
+    }
+
+    /**
+     * Crea una batalla aleatoria con equipos generados automáticamente
+     */
+    public BatallaDTO crearBatallaAleatoria() {
+        // Obtener todos los Pokémon disponibles
+        List<Pokemon> todosLosPokemon = pokemonService.getAllPokemon();
+        
+        if (todosLosPokemon.size() < 6) {
+            throw new RuntimeException("Se necesitan al menos 6 Pokémon en la base de datos para crear una batalla aleatoria");
+        }
+        
+        // Crear una copia para no modificar la lista original
+        List<Pokemon> pokemonDisponibles = new ArrayList<>(todosLosPokemon);
+        
+        // Mezclar la lista
+        Collections.shuffle(pokemonDisponibles);
+        
+        // Seleccionar 6 Pokémon únicos
+        List<Pokemon> pokemonSeleccionados = pokemonDisponibles.stream()
+            .limit(6)
+            .collect(Collectors.toList());
+        
+        // Crear copias de los Pokémon para la batalla (para no modificar los originales)
+        List<Pokemon> equipo1 = pokemonSeleccionados.subList(0, 3).stream()
+            .map(this::crearCopiaPokemon)
+            .collect(Collectors.toList());
+            
+        List<Pokemon> equipo2 = pokemonSeleccionados.subList(3, 6).stream()
+            .map(this::crearCopiaPokemon)
+            .collect(Collectors.toList());
+        
+        // Crear BatallaDTO
+        BatallaDTO batallaAleatoria = new BatallaDTO();
+        
+        // Configurar equipos
+        batallaAleatoria.setEntrenador1(equipo1);
+        batallaAleatoria.setEntrenador2(equipo2);
+        
+        // Nombres aleatorios para los equipos
+        batallaAleatoria.setNombreEquipo1(NOMBRES_EQUIPO_1[(int)(Math.random() * NOMBRES_EQUIPO_1.length)]);
+        batallaAleatoria.setNombreEquipo2(NOMBRES_EQUIPO_2[(int)(Math.random() * NOMBRES_EQUIPO_2.length)]);
+        
+        // Configuración inicial de batalla
+        batallaAleatoria.setTurno(1);
+        batallaAleatoria.setUsarEfectoE1(false);
+        batallaAleatoria.setUsarEfectoE2(false);
+        
+        // Flags de efectos
+        batallaAleatoria.setAtaqueReducidoEquipo1(false);
+        batallaAleatoria.setAtaqueReducidoEquipo2(false);
+        batallaAleatoria.setDefensaReducidaEquipo1(false);
+        batallaAleatoria.setDefensaReducidaEquipo2(false);
+        
+        // Efectos continuos
+        batallaAleatoria.setEfectoContinuoEquipo1(null);
+        batallaAleatoria.setEfectoContinuoEquipo2(null);
+        batallaAleatoria.setTurnosRestantesEquipo1(0);
+        batallaAleatoria.setTurnosRestantesEquipo2(0);
+        
+        System.out.println("=== BATALLA ALEATORIA CREADA ===");
+        System.out.println("Equipo 1 (" + batallaAleatoria.getNombreEquipo1() + "):");
+        equipo1.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
+        System.out.println("Equipo 2 (" + batallaAleatoria.getNombreEquipo2() + "):");
+        equipo2.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
+        
+        return batallaAleatoria;
+    }
+    
+    /**
+     * Crea una copia de un Pokémon para la batalla
+     */
+    private Pokemon crearCopiaPokemon(Pokemon original) {
+        Pokemon copia = new Pokemon();
+        
+        // Copiar propiedades básicas
+        copia.setId(original.getId());
+        copia.setNombre(original.getNombre());
+        copia.setTipoPokemon(original.getTipoPokemon());
+        copia.setSprite(original.getSprite());
+        copia.setEstado(original.getEstado());
+        
+        // Copiar estadísticas
+        copia.setVida(original.getVida());
+        copia.setAtaque(original.getAtaque());
+        copia.setDefensa(original.getDefensa());
+        
+        // Inicializar estadísticas base
+        copia.setVidaBase(original.getVida());
+        copia.setAtaqueBase(original.getAtaque());
+        copia.setDefensaBase(original.getDefensa());
+        
+        // Inicializar modificadores
+        copia.setAtaqueModificado(original.getAtaque());
+        copia.setDefensaModificada(original.getDefensa());
+        
+        // Copiar ataques y efectos
+        copia.setIdAtaque1(original.getIdAtaque1());
+        copia.setIdAtaque2(original.getIdAtaque2());
+        copia.setIdEfecto(original.getIdEfecto());
+        
+        // Inicializar efectos como inactivos
+        copia.setTieneEfectoContinuo(false);
+        copia.setTurnosEfectoContinuo(0);
+        copia.setIdEfectoActivo(null);
+        
+        return copia;
     }
 
     private boolean esPrimeroEntrenador1(int turno) {

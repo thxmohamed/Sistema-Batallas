@@ -16,9 +16,14 @@ const combatir = (posicionAtacante, posicionReceptor, data) => {
     return httpClient.post(`/batalla/combate/${posicionAtacante}/${posicionReceptor}`, data)
 }
 
+const createRandomBattle = () => {
+    return httpClient.post('/batalla/batalla-aleatoria')
+}
+
 export default {
     getAll,
     getById,
     create,
-    combatir
+    combatir,
+    createRandomBattle
 }

@@ -12,11 +12,19 @@ const BattleView = () => {
   const navigate = useNavigate();
   const { mainTheme } = useAudioContext();
 
-  const { selectedTrainer1, selectedTrainer2 } = location.state || {};
+  const { selectedTrainer1, selectedTrainer2, randomBattle, isRandomBattle } = location.state || {};
 
-  if (!selectedTrainer1 || !selectedTrainer2) {
+  if (!isRandomBattle && (!selectedTrainer1 || !selectedTrainer2)) {
     navigate("/setup");
   }
+
+  if (isRandomBattle && !randomBattle) {
+    navigate("/setup");
+  }
+
+  // Define team names based on battle type
+  const teamName1 = isRandomBattle ? randomBattle?.nombreEquipo1 : selectedTrainer1?.nombre;
+  const teamName2 = isRandomBattle ? randomBattle?.nombreEquipo2 : selectedTrainer2?.nombre;
 
   const [pokemonDataTrainer1, setPokemonDataTrainer1] = useState([]);
   const [pokemonDataTrainer2, setPokemonDataTrainer2] = useState([]);
@@ -164,62 +172,108 @@ const BattleView = () => {
   useEffect(() => {
     const initializeBattle = async () => {
       try {
-        // Load Pokemon data for trainer 1
-        const responses1 = await Promise.all([
-          pokemonService.getById(selectedTrainer1.idPokemon1),
-          pokemonService.getById(selectedTrainer1.idPokemon2),
-          pokemonService.getById(selectedTrainer1.idPokemon3),
-        ]);
-        
-        const pokemonData1 = responses1.map((response) => response.data);
-        setPokemonDataTrainer1(pokemonData1);
-        
-        const newLivesTrainer1 = pokemonData1.map((pokemon) => pokemon.vida);
-        setLivesTrainer1(newLivesTrainer1);
-        setVidaMaxE1(newLivesTrainer1);
+        if (isRandomBattle) {
+          // Initialize random battle
+          const pokemonData1 = randomBattle.entrenador1;
+          const pokemonData2 = randomBattle.entrenador2;
+          
+          setPokemonDataTrainer1(pokemonData1);
+          setPokemonDataTrainer2(pokemonData2);
+          
+          const newLivesTrainer1 = pokemonData1.map((pokemon) => pokemon.vida);
+          const newLivesTrainer2 = pokemonData2.map((pokemon) => pokemon.vida);
+          setLivesTrainer1(newLivesTrainer1);
+          setLivesTrainer2(newLivesTrainer2);
+          setVidaMaxE1(newLivesTrainer1);
+          setVidaMaxE2(newLivesTrainer2);
 
-        // Load Pokemon data for trainer 2
-        const responses2 = await Promise.all([
-          pokemonService.getById(selectedTrainer2.idPokemon1),
-          pokemonService.getById(selectedTrainer2.idPokemon2),
-          pokemonService.getById(selectedTrainer2.idPokemon3),
-        ]);
-        
-        const pokemonData2 = responses2.map((response) => response.data);
-        setPokemonDataTrainer2(pokemonData2);
-        
-        const newLivesTrainer2 = pokemonData2.map((pokemon) => pokemon.vida);
-        setLivesTrainer2(newLivesTrainer2);
-        setVidaMaxE2(newLivesTrainer2);
+          // Load attacks for team 1
+          const attackResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer1(attackResponses1.map((response) => response.data));
 
-        // Load attacks for trainer 1
-        const attackResponses1 = await Promise.all(
-          pokemonData1.map((pokemon) => pokemonService.getAtaques(pokemon.id))
-        );
-        setAttacksTrainer1(attackResponses1.map((response) => response.data));
+          // Load attacks for team 2
+          const attackResponses2 = await Promise.all(
+            pokemonData2.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer2(attackResponses2.map((response) => response.data));
 
-        // Load attacks for trainer 2
-        const attackResponses2 = await Promise.all(
-          pokemonData2.map((pokemon) => pokemonService.getAtaques(pokemon.id))
-        );
-        setAttacksTrainer2(attackResponses2.map((response) => response.data));
+          // Load effects for team 1
+          const effectResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer1(effectResponses1.map((response) => response.data));
 
-        // Load effects for trainer 1
-        const effectResponses1 = await Promise.all(
-          pokemonData1.map((pokemon) => pokemonService.getEfecto(pokemon.id))
-        );
-        setEffectsTrainer1(effectResponses1.map((response) => response.data));
+          // Load effects for team 2
+          const effectResponses2 = await Promise.all(
+            pokemonData2.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer2(effectResponses2.map((response) => response.data));
 
-        // Load effects for trainer 2
-        const effectResponses2 = await Promise.all(
-          pokemonData2.map((pokemon) => pokemonService.getEfecto(pokemon.id))
-        );
-        setEffectsTrainer2(effectResponses2.map((response) => response.data));
+          setBattleLog([
+            `¡La batalla aleatoria entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `${teamName1} inicia el combate.`
+          ]);
+        } else {
+          // Initialize normal battle
+          // Load Pokemon data for trainer 1
+          const responses1 = await Promise.all([
+            pokemonService.getById(selectedTrainer1.idPokemon1),
+            pokemonService.getById(selectedTrainer1.idPokemon2),
+            pokemonService.getById(selectedTrainer1.idPokemon3),
+          ]);
+          
+          const pokemonData1 = responses1.map((response) => response.data);
+          setPokemonDataTrainer1(pokemonData1);
+          
+          const newLivesTrainer1 = pokemonData1.map((pokemon) => pokemon.vida);
+          setLivesTrainer1(newLivesTrainer1);
+          setVidaMaxE1(newLivesTrainer1);
 
-        setBattleLog([
-          `¡La batalla entre ${selectedTrainer1.nombre} y ${selectedTrainer2.nombre} ha comenzado!`,
-          `${selectedTrainer1.nombre} inicia el combate.`
-        ]);
+          // Load Pokemon data for trainer 2
+          const responses2 = await Promise.all([
+            pokemonService.getById(selectedTrainer2.idPokemon1),
+            pokemonService.getById(selectedTrainer2.idPokemon2),
+            pokemonService.getById(selectedTrainer2.idPokemon3),
+          ]);
+          
+          const pokemonData2 = responses2.map((response) => response.data);
+          setPokemonDataTrainer2(pokemonData2);
+          
+          const newLivesTrainer2 = pokemonData2.map((pokemon) => pokemon.vida);
+          setLivesTrainer2(newLivesTrainer2);
+          setVidaMaxE2(newLivesTrainer2);
+
+          // Load attacks for trainer 1
+          const attackResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer1(attackResponses1.map((response) => response.data));
+
+          // Load attacks for trainer 2
+          const attackResponses2 = await Promise.all(
+            pokemonData2.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer2(attackResponses2.map((response) => response.data));
+
+          // Load effects for trainer 1
+          const effectResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer1(effectResponses1.map((response) => response.data));
+
+          // Load effects for trainer 2
+          const effectResponses2 = await Promise.all(
+            pokemonData2.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer2(effectResponses2.map((response) => response.data));
+
+          setBattleLog([
+            `¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `${teamName1} inicia el combate.`
+          ]);
+        }
         
       } catch (error) {
         console.error("Error al inicializar la batalla:", error);
@@ -297,7 +351,7 @@ const BattleView = () => {
 
       // Update Pokemon lives in the data
       // Prepare batalla data maintaining all pokemon properties (including modified stats)
-      const updatedEntrenador1 = pokemonDataTrainer1.map((pokemon, index) => ({
+      const updatedEntrenador1 = pokemonDataTrainer1 && pokemonDataTrainer1 && pokemonDataTrainer1.map((pokemon, index) => ({
         ...pokemon,
         vida: livesTrainer1[index],
         // Ensure modified stats are preserved if they exist
@@ -305,7 +359,7 @@ const BattleView = () => {
         defensaModificada: pokemon.defensaModificada || pokemon.defensa,
       }));
 
-      const updatedEntrenador2 = pokemonDataTrainer2.map((pokemon, index) => ({
+      const updatedEntrenador2 = pokemonDataTrainer2 && pokemonDataTrainer2 && pokemonDataTrainer2.map((pokemon, index) => ({
         ...pokemon,
         vida: livesTrainer2[index],
         // Ensure modified stats are preserved if they exist
@@ -394,7 +448,7 @@ const BattleView = () => {
       
       // Detectar si el daño fue causado por veneno al inicio del turno
       if ((damageByPoison1 && teamEffects.team1.effectId) || (damageByPoison2 && teamEffects.team2.effectId)) {
-        const damagedTeam = damageByPoison1 ? selectedTrainer1.nombre : selectedTrainer2.nombre;
+        const damagedTeam = damageByPoison1 ? teamName1 : teamName2;
         setBattleLog(prev => [...prev, `💀 El equipo de ${damagedTeam} sufre daño por envenenamiento`]);
         
         // Mostrar Pokémon específicos que sufrieron daño
@@ -419,7 +473,7 @@ const BattleView = () => {
       }
 
       // Add to battle log
-      const currentTrainer = isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre;
+      const currentTrainer = isTeam1Turn ? teamName1 : teamName2;
       const action = isTeam1Turn ? 
         (useEffectE1 ? `usó ${effectsTrainer1[selectedAttackerE1]?.nombre}` : `atacó con ${ataque?.nombre || 'Ataque'}`) :
         (useEffectE2 ? `usó ${effectsTrainer2[selectedAttackerE2]?.nombre}` : `atacó con ${ataque?.nombre || 'Ataque'}`);
@@ -428,32 +482,32 @@ const BattleView = () => {
 
       // Añadir mensajes de efectos de equipo al log
       if (response.data.efectoContinuoEquipo1 && response.data.turnosRestantesEquipo1 > 0 && !teamEffects.team1.effectId) {
-        setBattleLog(prev => [...prev, `¡El equipo de ${selectedTrainer1.nombre} ha sido envenenado! (${response.data.turnosRestantesEquipo1} turnos)`]);
+        setBattleLog(prev => [...prev, `¡El equipo de ${teamName1} ha sido envenenado! (${response.data.turnosRestantesEquipo1} turnos)`]);
       }
       if (response.data.efectoContinuoEquipo2 && response.data.turnosRestantesEquipo2 > 0 && !teamEffects.team2.effectId) {
-        setBattleLog(prev => [...prev, `¡El equipo de ${selectedTrainer2.nombre} ha sido envenenado! (${response.data.turnosRestantesEquipo2} turnos)`]);
+        setBattleLog(prev => [...prev, `¡El equipo de ${teamName2} ha sido envenenado! (${response.data.turnosRestantesEquipo2} turnos)`]);
       }
 
       // Mostrar cuando los efectos terminan
       if (teamEffects.team1.effectId && !response.data.efectoContinuoEquipo1) {
-        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${selectedTrainer1.nombre} ha terminado.`]);
+        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${teamName1} ha terminado.`]);
       }
       if (teamEffects.team2.effectId && !response.data.efectoContinuoEquipo2) {
-        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${selectedTrainer2.nombre} ha terminado.`]);
+        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${teamName2} ha terminado.`]);
       }
 
       // Añadir mensajes de efectos de reducción de estadísticas
       if (response.data.ataqueReducidoEquipo1) {
-        setBattleLog(prev => [...prev, `⬇️ ¡El ataque de todo el equipo de ${selectedTrainer1.nombre} ha sido reducido!`]);
+        setBattleLog(prev => [...prev, `⬇️ ¡El ataque de todo el equipo de ${teamName1} ha sido reducido!`]);
       }
       if (response.data.ataqueReducidoEquipo2) {
-        setBattleLog(prev => [...prev, `⬇️ ¡El ataque de todo el equipo de ${selectedTrainer2.nombre} ha sido reducido!`]);
+        setBattleLog(prev => [...prev, `⬇️ ¡El ataque de todo el equipo de ${teamName2} ha sido reducido!`]);
       }
       if (response.data.defensaReducidaEquipo1) {
-        setBattleLog(prev => [...prev, `🛡️⬇️ ¡La defensa de todo el equipo de ${selectedTrainer1.nombre} ha sido reducida!`]);
+        setBattleLog(prev => [...prev, `🛡️⬇️ ¡La defensa de todo el equipo de ${teamName1} ha sido reducida!`]);
       }
       if (response.data.defensaReducidaEquipo2) {
-        setBattleLog(prev => [...prev, `🛡️⬇️ ¡La defensa de todo el equipo de ${selectedTrainer2.nombre} ha sido reducida!`]);
+        setBattleLog(prev => [...prev, `🛡️⬇️ ¡La defensa de todo el equipo de ${teamName2} ha sido reducida!`]);
       }
 
       // Check for winner
@@ -461,8 +515,8 @@ const BattleView = () => {
       const isTrainer2Lost = newLivesTrainer2.every((vida) => vida <= 0);
 
       if (isTrainer1Lost || isTrainer2Lost) {
-        const winnerTrainer = isTrainer1Lost ? selectedTrainer2.nombre : selectedTrainer1.nombre;
-        const defeatedTrainer = isTrainer1Lost ? selectedTrainer1.nombre : selectedTrainer2.nombre;
+        const winnerTrainer = isTrainer1Lost ? teamName2 : teamName1;
+        const defeatedTrainer = isTrainer1Lost ? teamName1 : teamName2;
         
         // Determinar si la victoria fue por veneno
         const victoryByPoison = (isTrainer1Lost && damageByPoison1) || (isTrainer2Lost && damageByPoison2);
@@ -539,9 +593,9 @@ const BattleView = () => {
               <h3>Resumen de la Batalla</h3>
               <div className="final-stats">
                 <div className="trainer-final-stats">
-                  <h4>{selectedTrainer1.nombre}</h4>
+                  <h4>{teamName1}</h4>
                   <div className="pokemon-final-lives">
-                    {pokemonDataTrainer1.map((pokemon, index) => (
+                    {pokemonDataTrainer1 && pokemonDataTrainer1 && pokemonDataTrainer1.map((pokemon, index) => (
                       <div key={pokemon.id} className="pokemon-final-stat">
                         <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
                         <span className={livesTrainer1[index] > 0 ? 'alive' : 'fainted'}>
@@ -553,9 +607,9 @@ const BattleView = () => {
                 </div>
                 
                 <div className="trainer-final-stats">
-                  <h4>{selectedTrainer2.nombre}</h4>
+                  <h4>{teamName2}</h4>
                   <div className="pokemon-final-lives">
-                    {pokemonDataTrainer2.map((pokemon, index) => (
+                    {pokemonDataTrainer2 && pokemonDataTrainer2 && pokemonDataTrainer2.map((pokemon, index) => (
                       <div key={pokemon.id} className="pokemon-final-stat">
                         <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
                         <span className={livesTrainer2[index] > 0 ? 'alive' : 'fainted'}>
@@ -601,9 +655,9 @@ const BattleView = () => {
               <h3>Resumen de la Batalla</h3>
               <div className="final-stats">
                 <div className="trainer-final-stats">
-                  <h4>{selectedTrainer1.nombre}</h4>
+                  <h4>{teamName1}</h4>
                   <div className="pokemon-final-lives">
-                    {pokemonDataTrainer1.map((pokemon, index) => (
+                    {pokemonDataTrainer1 && pokemonDataTrainer1 && pokemonDataTrainer1.map((pokemon, index) => (
                       <div key={pokemon.id} className="pokemon-final-stat">
                         <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
                         <span className={livesTrainer1[index] > 0 ? 'alive' : 'fainted'}>
@@ -615,9 +669,9 @@ const BattleView = () => {
                 </div>
                 
                 <div className="trainer-final-stats">
-                  <h4>{selectedTrainer2.nombre}</h4>
+                  <h4>{teamName2}</h4>
                   <div className="pokemon-final-lives">
-                    {pokemonDataTrainer2.map((pokemon, index) => (
+                    {pokemonDataTrainer2 && pokemonDataTrainer2 && pokemonDataTrainer2.map((pokemon, index) => (
                       <div key={pokemon.id} className="pokemon-final-stat">
                         <img src={`data:image/png;base64,${pokemon.sprite}`} alt={pokemon.nombre} />
                         <span className={livesTrainer2[index] > 0 ? 'alive' : 'fainted'}>
@@ -656,7 +710,7 @@ const BattleView = () => {
             <div className="turn-indicator">
               <span className="turn-number">Turno {turn}</span>
               <span className={`current-player ${isTeam1Turn ? 'team1' : 'team2'}`}>
-                {isTeam1Turn ? selectedTrainer1.nombre : selectedTrainer2.nombre}
+                {isTeam1Turn ? teamName1 : teamName2}
               </span>
             </div>
           </div>
@@ -670,7 +724,7 @@ const BattleView = () => {
           <div className="trainer-info">
             <h2 className="trainer-name">
               <span className="trainer-icon">👨‍💼</span>
-              {selectedTrainer1.nombre}
+              {teamName1}
             </h2>
             {isTeam1Turn && (
               <div className="turn-indicator-badge">
@@ -689,7 +743,7 @@ const BattleView = () => {
           </div>
           
           <div className="pokemon-team">
-            {pokemonDataTrainer1.map((pokemon, index) => {
+            {pokemonDataTrainer1 && pokemonDataTrainer1 && pokemonDataTrainer1 && pokemonDataTrainer1.map((pokemon, index) => {
               const isAlive = livesTrainer1[index] > 0;
               const isSelected = selectedAttackerE1 === index && isTeam1Turn;
               const healthPercentage = (livesTrainer1[index] / vidaMaxE1[index]) * 100;
@@ -799,7 +853,7 @@ const BattleView = () => {
           <div className="trainer-info">
             <h2 className="trainer-name">
               <span className="trainer-icon">👩‍💼</span>
-              {selectedTrainer2.nombre}
+              {teamName2}
             </h2>
             {!isTeam1Turn && (
               <div className="turn-indicator-badge">
@@ -818,7 +872,7 @@ const BattleView = () => {
           </div>
           
           <div className="pokemon-team">
-            {pokemonDataTrainer2.map((pokemon, index) => {
+            {pokemonDataTrainer2 && pokemonDataTrainer2 && pokemonDataTrainer2 && pokemonDataTrainer2.map((pokemon, index) => {
               const isAlive = livesTrainer2[index] > 0;
               const isSelected = selectedAttackerE2 === index && !isTeam1Turn;
               const healthPercentage = (livesTrainer2[index] / vidaMaxE2[index]) * 100;

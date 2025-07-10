@@ -46,4 +46,10 @@ public class BatallaController {
         batallaDTO = batallaService.combatir(batallaDTO, posicionAtacante, posicionReceptor);
         return new ResponseEntity<>(batallaDTO, HttpStatus.OK);
     }
+
+    @PostMapping("/batalla-aleatoria")
+    public ResponseEntity<BatallaDTO> crearBatallaAleatoria() {
+        BatallaDTO batallaAleatoria = batallaService.crearBatallaAleatoria();
+        return new ResponseEntity<>(batallaAleatoria, HttpStatus.CREATED);
+    }
 }
