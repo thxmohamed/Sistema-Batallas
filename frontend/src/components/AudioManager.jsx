@@ -49,13 +49,25 @@ const AudioManager = ({
 
   // Update volumes when context changes
   useEffect(() => {
-    battleTheme.setVolume(musicVolume);
-    victoryTheme.setVolume(musicVolume);
-    attackHitSFX.setVolume(sfxVolume);
-    effectUseSFX.setVolume(sfxVolume);
-    pokemonFaintSFX.setVolume(sfxVolume);
-    buttonClickSFX.setVolume(sfxVolume);
-  }, [musicVolume, sfxVolume, battleTheme, victoryTheme, attackHitSFX, effectUseSFX, pokemonFaintSFX, buttonClickSFX]);
+    if (battleTheme.setVolume) {
+      battleTheme.setVolume(musicVolume);
+    }
+    if (victoryTheme.setVolume) {
+      victoryTheme.setVolume(musicVolume);
+    }
+    if (attackHitSFX.setVolume) {
+      attackHitSFX.setVolume(sfxVolume);
+    }
+    if (effectUseSFX.setVolume) {
+      effectUseSFX.setVolume(sfxVolume);
+    }
+    if (pokemonFaintSFX.setVolume) {
+      pokemonFaintSFX.setVolume(sfxVolume);
+    }
+    if (buttonClickSFX.setVolume) {
+      buttonClickSFX.setVolume(sfxVolume);
+    }
+  }, [musicVolume, sfxVolume]);
 
   // Stop all audio when disabled
   useEffect(() => {
@@ -68,7 +80,6 @@ const AudioManager = ({
   // Notify parent when audio is ready
   useEffect(() => {
     if (onAudioReady && battleTheme.isLoaded && victoryTheme.isLoaded) {
-      console.log('🎵 Audio Manager: Todos los archivos de audio están cargados, notificando componente padre');
       onAudioReady({
         playBattleMusic: async () => {
           console.log('🎵 Intentando reproducir música de batalla. Audio habilitado:', audioEnabled);
@@ -190,13 +201,7 @@ const AudioManager = ({
   }, [
     battleTheme.isLoaded,
     victoryTheme.isLoaded,
-    audioEnabled,
-    battleTheme.play,
-    victoryTheme.play,
-    attackHitSFX.play,
-    effectUseSFX.play,
-    pokemonFaintSFX.play,
-    buttonClickSFX.play
+    audioEnabled
   ]);
 
   return null; // This component doesn't render anything

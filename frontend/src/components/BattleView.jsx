@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import pokemonService from "../Services/pokemon.service";
 import batallaService from "../services/batalla.service";
+import entrenadorService from "../services/entrenador.service";
+import cpuService from "../services/cpu.service";
 import AudioManager from "./AudioManager";
 import AudioControls from "./AudioControls";
 import { useAudioContext } from "../contexts/AudioContext.jsx";
@@ -12,9 +14,9 @@ const BattleView = () => {
   const navigate = useNavigate();
   const { mainTheme } = useAudioContext();
 
-  const { selectedTrainer1, selectedTrainer2, randomBattle, isRandomBattle } = location.state || {};
+  const { selectedTrainer1, selectedTrainer2, randomBattle, isRandomBattle, isCpuBattle, cpuDifficulty, cpuIsTeam1 } = location.state || {};
 
-  if (!isRandomBattle && (!selectedTrainer1 || !selectedTrainer2)) {
+  if (!isRandomBattle && !isCpuBattle && (!selectedTrainer1 || !selectedTrainer2)) {
     navigate("/setup");
   }
 
@@ -22,9 +24,15 @@ const BattleView = () => {
     navigate("/setup");
   }
 
+  if (isCpuBattle && !selectedTrainer1) {
+    navigate("/setup");
+  }
+
   // Define team names based on battle type
   const teamName1 = isRandomBattle ? randomBattle?.nombreEquipo1 : selectedTrainer1?.nombre;
-  const teamName2 = isRandomBattle ? randomBattle?.nombreEquipo2 : selectedTrainer2?.nombre;
+  const teamName2 = isRandomBattle 
+    ? randomBattle?.nombreEquipo2 
+    : (isCpuBattle ? `CPU (${cpuDifficulty || 'NORMAL'})` : selectedTrainer2?.nombre);
 
   const [pokemonDataTrainer1, setPokemonDataTrainer1] = useState([]);
   const [pokemonDataTrainer2, setPokemonDataTrainer2] = useState([]);
@@ -55,6 +63,7 @@ const BattleView = () => {
   const [battleInProgress, setBattleInProgress] = useState(false);
   const [battleLog, setBattleLog] = useState([]);
   const [winner, setWinner] = useState(null);
+  const [cpuTurnProcessing, setCpuTurnProcessing] = useState(false);
 
   // Estados para efectos de equipo (DANO_CONTINUO)
   const [teamEffects, setTeamEffects] = useState({
@@ -228,6 +237,63 @@ const BattleView = () => {
             `¡La batalla aleatoria entre ${teamName1} y ${teamName2} ha comenzado!`,
             `${teamName1} inicia el combate.`
           ]);
+        } else if (isCpuBattle) {
+          // Initialize CPU battle - need to create a random team for CPU
+          console.log("Inicializando batalla CPU...");
+          
+          // First, load player trainer's Pokemon using the correct endpoint
+          const pokemonResponse1 = await entrenadorService.getPokemon(selectedTrainer1.id);
+          const pokemonData1 = pokemonResponse1.data;
+          
+          if (!pokemonData1 || pokemonData1.length === 0) {
+            throw new Error("El entrenador seleccionado no tiene Pokémon asignados");
+          }
+          
+          setPokemonDataTrainer1(pokemonData1);
+          
+          const newLivesTrainer1 = pokemonData1.map((pokemon) => pokemon.vida);
+          setLivesTrainer1(newLivesTrainer1);
+          setVidaMaxE1(newLivesTrainer1);
+
+          // Load attacks for player team
+          const attackResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer1(attackResponses1.map((response) => response.data));
+
+          // Load effects for player team
+          const effectResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer1(effectResponses1.map((response) => response.data));
+
+          // Generate random team for CPU
+          const randomBattleResponse = await batallaService.createRandomBattleWithMode("TOTAL");
+          const cpuTeamData = randomBattleResponse.data.entrenador1; // Use first team for CPU
+          
+          setPokemonDataTrainer2(cpuTeamData);
+          
+          const newLivesTrainer2 = cpuTeamData.map((pokemon) => pokemon.vida);
+          setLivesTrainer2(newLivesTrainer2);
+          setVidaMaxE2(newLivesTrainer2);
+
+          // Load attacks for CPU team
+          const attackResponses2 = await Promise.all(
+            cpuTeamData.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer2(attackResponses2.map((response) => response.data));
+
+          // Load effects for CPU team
+          const effectResponses2 = await Promise.all(
+            cpuTeamData.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer2(effectResponses2.map((response) => response.data));
+
+          setBattleLog([
+            `¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `${teamName1} enfrenta a la CPU en dificultad ${cpuDifficulty}`,
+            `${teamName1} inicia el combate.`
+          ]);
         } else {
           // Initialize normal battle
           // Load Pokemon data for trainer 1
@@ -298,6 +364,139 @@ const BattleView = () => {
     initializeBattle();
   }, [selectedTrainer1, selectedTrainer2]);
 
+  // useEffect para limpiar estados cuando hay un ganador
+  useEffect(() => {
+    if (winner) {
+      console.log("🏆 Ganador detectado - limpiando estados de CPU");
+      setCpuTurnProcessing(false);
+      setBattleInProgress(false);
+    }
+  }, [winner]);
+
+  // Función para manejar el turno de la CPU (llamada directamente, no en useEffect)
+  const handleCpuTurnAction = async (forceTurn = null, updatedPokemonData1 = null, updatedPokemonData2 = null) => {
+    const currentTurn = forceTurn || turn;
+    // Usar datos actualizados si están disponibles, si no usar el estado actual
+    const currentPokemonData1 = updatedPokemonData1 || pokemonDataTrainer1;
+    const currentPokemonData2 = updatedPokemonData2 || pokemonDataTrainer2;
+    
+    console.log("🤖 handleCpuTurnAction: Verificando condiciones de entrada");
+    console.log("🤖 Estados:", {
+      battleInProgress,
+      cpuTurnProcessing,
+      winner,
+      turn,
+      forceTurn,
+      currentTurn,
+      isCpuBattle,
+      currentTeam: currentTurn % 2 === 1 ? 1 : 2,
+      isTeam1Turn: (currentTurn % 2 === 1),
+      isCpuTurn: (currentTurn % 2 === 0),
+      usingUpdatedData: updatedPokemonData1 !== null
+    });
+
+    if (battleInProgress || cpuTurnProcessing || winner || !isCpuBattle) {
+      console.log("🤖 CPU: Turno cancelado - batalla en progreso, CPU procesando, hay ganador, o no es batalla CPU");
+      return;
+    }
+
+    // Verificar que realmente es turno de la CPU (turno par, equipo 2)
+    if (currentTurn % 2 === 1) {
+      console.log("🤖 CPU: Turno cancelado - es turno del jugador (turno impar, equipo 1)");
+      return;
+    }
+
+    try {
+      console.log("🤖 CPU: Iniciando turno", currentTurn);
+      setCpuTurnProcessing(true);
+      setBattleInProgress(true);
+      
+      // Crear el estado de batalla actual para enviar a la CPU
+      const batallaDTO = {
+        entrenador1: currentPokemonData1,
+        entrenador2: currentPokemonData2,
+        turno: currentTurn
+      };
+
+      console.log("🤖 CPU: Enviando request:", {
+        difficulty: cpuDifficulty,
+        cpuIsTeam1: false,
+        pokemonEquipo1: currentPokemonData1.map(p => ({ nombre: p.nombre, vida: p.vida })),
+        pokemonEquipo2: currentPokemonData2.map(p => ({ nombre: p.nombre, vida: p.vida }))
+      });
+
+      // Obtener decisión de la CPU
+      const cpuResponse = await cpuService.getCpuAction(batallaDTO, cpuDifficulty, false);
+      
+      if (!cpuResponse.data.success) {
+        console.error("❌ CPU: Error en decisión:", cpuResponse.data.reasoning);
+        setBattleLog(prev => [...prev, `❌ Error CPU: ${cpuResponse.data.reasoning}`]);
+        return;
+      }
+
+      const cpuAction = cpuResponse.data;
+      console.log("✅ CPU: Acción recibida:", cpuAction);
+
+      // Aplicar la decisión de la CPU directamente
+      setSelectedAttackerE2(cpuAction.attackerIndex);
+      setSelectedTargetE2(cpuAction.targetIndex);
+      setUseEffectE2(cpuAction.useEffect);
+      
+      if (!cpuAction.useEffect) {
+        setSelectedAttackE2(cpuAction.attackIndex);
+      }
+
+      console.log("🤖 CPU: Selecciones configuradas");
+      
+      // Añadir mensaje al log sobre la acción de la CPU
+      setBattleLog(prev => [...prev, `🤖 CPU ${cpuAction.reasoning}`]);
+
+      // Ejecutar inmediatamente después de configurar
+      setTimeout(async () => {
+        try {
+          console.log("🎯 CPU: Ejecutando combate inmediatamente");
+          console.log("🎯 CPU: Estados antes de ejecutar:", {
+            winner,
+            cpuTurnProcessing,
+            battleInProgress,
+            canExecuteAction: canExecuteAction(),
+            selectedAttackerE2,
+            selectedTargetE2,
+            useEffectE2,
+            selectedAttackE2
+          });
+          
+          // Verificación: debe estar procesando turno CPU y no haber ganador
+          if (!winner && cpuTurnProcessing) {
+            console.log("✅ CPU: Condiciones válidas, ejecutando combate...");
+            await executeCombat('CPU');
+          } else {
+            console.log("🤖 CPU: Combate cancelado - estado inválido", {
+              battleInProgress,
+              winner,
+              cpuTurnProcessing
+            });
+          }
+        } catch (error) {
+          console.error("❌ CPU: Error ejecutando combate:", error);
+        } finally {
+          // Limpiar estados de CPU DESPUÉS de ejecutar el combate
+          console.log("🤖 CPU: Finalizando turno en setTimeout finally");
+          setCpuTurnProcessing(false);
+          setBattleInProgress(false);
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.error("❌ CPU: Error general:", error);
+      setBattleLog(prev => [...prev, `❌ Error en turno de CPU: ${error.message}`]);
+      // Solo limpiar en caso de error antes del setTimeout
+      setCpuTurnProcessing(false);
+      setBattleInProgress(false);
+    }
+    // Remover el finally aquí para que no se ejecute inmediatamente
+  };
+
   const handlePokemonAction = (trainerTeam, pokemonIndex, useEffect) => {
     playSoundEffect('click');
     
@@ -339,6 +538,18 @@ const BattleView = () => {
   };
 
   const canExecuteAction = () => {
+    // Validaciones generales de estado
+    // Durante un turno de CPU, permitir la ejecución si cpuTurnProcessing es true
+    if (winner) {
+      return false;
+    }
+    
+    // Si es turno de CPU (cpuTurnProcessing = true), permitir la ejecución
+    // Si no es turno de CPU, no permitir si battle está en progreso
+    if (!cpuTurnProcessing && battleInProgress) {
+      return false;
+    }
+    
     if (isTeam1Turn) {
       return selectedAttackerE1 !== null && 
              (useEffectE1 || (selectedTargetE1 !== null && selectedAttackE1 !== null)) &&
@@ -350,12 +561,52 @@ const BattleView = () => {
     }
   };
 
-  const executeAction = async () => {
-    if (!canExecuteAction()) {
+  const executeCombat = async (source = 'unknown') => {
+    const executionId = Math.random().toString(36).substr(2, 9);
+    console.log(`🎯 executeCombat [${executionId}] desde ${source}: Verificando condiciones de ejecución`);
+    
+    // VALIDACIÓN CRÍTICA: Evitar múltiples ejecuciones concurrentes
+    // Excepto si es la CPU ejecutando su propio turno
+    if (battleInProgress && source !== 'CPU') {
+      console.log(`❌ executeCombat [${executionId}]: ABORTADO - batalla ya en progreso (no CPU)`);
       return;
     }
 
-    setBattleInProgress(true);
+    // VALIDACIÓN CRÍTICA: Verificar que no hay ganador
+    if (winner) {
+      console.log(`❌ executeCombat [${executionId}]: ABORTADO - ya hay un ganador`);
+      return;
+    }
+
+    // VALIDACIÓN CRÍTICA: Verificar que se puede ejecutar la acción
+    if (!canExecuteAction()) {
+      console.log(`❌ executeCombat [${executionId}]: ABORTADO - no se puede ejecutar la acción`);
+      return;
+    }
+
+    // ESTABLECER INMEDIATAMENTE EL ESTADO DE BATALLA EN PROGRESO (solo si no es CPU)
+    if (source !== 'CPU') {
+      setBattleInProgress(true);
+    }
+    
+    console.log(`🎯 executeCombat [${executionId}]: canExecuteAction():`, canExecuteAction());
+    console.log(`🎯 executeCombat [${executionId}]: Estados actuales:`, {
+      battleInProgress: true, // Ya establecido arriba
+      winner,
+      isTeam1Turn,
+      selectedAttackerE1,
+      selectedAttackerE2,
+      selectedTargetE1,
+      selectedTargetE2,
+      selectedAttackE1,
+      selectedAttackE2,
+      useEffectE1,
+      useEffectE2,
+      livesTrainer1: livesTrainer1?.[selectedAttackerE1],
+      livesTrainer2: livesTrainer2?.[selectedAttackerE2]
+    });
+
+    console.log(`✅ executeCombat [${executionId}]: Iniciando combate`);
 
     try {
       // Play appropriate sound effect
@@ -545,7 +796,26 @@ const BattleView = () => {
         
         // La música de victoria se maneja en el useEffect cuando se establece el winner
       } else {
-        setTurn(turn + 1);
+        const nextTurn = turn + 1;
+        setTurn(nextTurn);
+        
+        // Si es batalla CPU y el próximo turno es de la CPU (equipo 2), ejecutar turno automáticamente
+        // CPU juega en turnos pares (2, 4, 6...) cuando nextTurn % 2 === 0
+        if (isCpuBattle && nextTurn % 2 === 0 && !cpuTurnProcessing && !battleInProgress) {
+          console.log("🤖 Programando turno de CPU para turno", nextTurn);
+          console.log("🤖 Estado actual del turno:", turn, "-> próximo turno:", nextTurn);
+          // Delay para que se procese el cambio de turno
+          setTimeout(() => {
+            // Doble verificación antes de ejecutar
+            console.log("🤖 Ejecutando después del delay. Turn actual:", turn);
+            if (!cpuTurnProcessing && !battleInProgress && !winner) {
+              // Pasar los datos actualizados directamente desde la respuesta del backend
+              handleCpuTurnAction(nextTurn, response.data.entrenador1, response.data.entrenador2);
+            } else {
+              console.log("🤖 CPU: Turno cancelado - estado cambió durante delay");
+            }
+          }, 200);
+        }
       }
 
       // Reset selections
@@ -561,6 +831,13 @@ const BattleView = () => {
       setBattleLog(prev => [...prev, "Error durante la batalla"]);
     } finally {
       setBattleInProgress(false);
+      // Solo limpiar cpuTurnProcessing si no es desde la CPU o si no hay turno de CPU próximo
+      // La CPU limpiará su propio estado después de ejecutar
+      if (source === 'CPU') {
+        // La CPU limpia su propio estado
+        setCpuTurnProcessing(false);
+      }
+      // Si es turno del jugador, no limpiar cpuTurnProcessing aquí porque podría haber turno CPU próximo
     }
   };
 
@@ -1020,7 +1297,13 @@ const BattleView = () => {
       <div className="battle-actions">
         <button
           className={`btn btn-primary btn-lg ${!canExecuteAction() || battleInProgress ? 'btn-disabled' : ''}`}
-          onClick={executeAction}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!battleInProgress && canExecuteAction()) {
+              executeCombat('BUTTON');
+            }
+          }}
           disabled={!canExecuteAction() || battleInProgress}
         >
           {battleInProgress ? (

@@ -12,8 +12,6 @@ export const useAudio = (audioPath, options = {}) => {
   // Función para inicializar el audio
   const initializeAudio = useCallback(() => {
     if (!audioPath || !mountedRef.current) return;
-
-    console.log('🎵 Inicializando audio:', audioPath);
     
     // Si ya existe un audio, limpiarlo primero
     if (audioRef.current) {
@@ -30,7 +28,6 @@ export const useAudio = (audioPath, options = {}) => {
     // Event listeners
     const handleCanPlayThrough = () => {
       if (mountedRef.current) {
-        console.log('🎵 Audio cargado y listo:', audioPath);
         setIsLoaded(true);
       }
     };
@@ -44,7 +41,6 @@ export const useAudio = (audioPath, options = {}) => {
       if (mountedRef.current) setIsPlaying(false);
     };
     const handleError = (e) => {
-      console.error('❌ Error cargando audio:', audioPath, e);
     };
     
     audio.addEventListener('canplaythrough', handleCanPlayThrough);
@@ -99,7 +95,6 @@ export const useAudio = (audioPath, options = {}) => {
       audioRef.current.volume = volume;
       audioRef.current.loop = loop;
       audioRef.current.preload = preload;
-      console.log('🎵 Configuración actualizada para', audioPath, '- Volume:', volume, 'Loop:', loop, 'Preload:', preload);
     }
   }, [volume, loop, preload, audioPath]);
 
@@ -137,13 +132,11 @@ export const useAudio = (audioPath, options = {}) => {
         // Ensure volume is set correctly
         audioRef.current.volume = volume;
         
-        console.log('🎵 Reproduciendo audio:', audioPath, 'Volume:', volume);
         
         const playPromise = audioRef.current.play();
         
         if (playPromise !== undefined) {
           await playPromise;
-          console.log('✅ Audio reproducido exitosamente:', audioPath);
           return Promise.resolve();
         }
       } catch (error) {
@@ -151,12 +144,10 @@ export const useAudio = (audioPath, options = {}) => {
         
         // Try again for user interaction errors
         if (error.name === 'NotAllowedError') {
-          console.log('🔄 Reintentando reproducción tras interacción...');
           setTimeout(async () => {
             try {
               if (audioRef.current && mountedRef.current) {
                 await audioRef.current.play();
-                console.log('✅ Audio reproducido en segundo intento:', audioPath);
               }
             } catch (retryError) {
               console.warn('❌ Error en segundo intento:', retryError.message);
@@ -193,7 +184,6 @@ export const useAudio = (audioPath, options = {}) => {
     // Actualizar inmediatamente el volumen del audio si existe
     if (audioRef.current && mountedRef.current) {
       audioRef.current.volume = vol;
-      console.log('🎵 Volumen cambiado inmediatamente para', audioPath, ':', vol);
     }
   };
 

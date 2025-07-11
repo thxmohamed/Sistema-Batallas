@@ -11,9 +11,11 @@ const BattleSetupView = () => {
   const [selectedTrainer2, setSelectedTrainer2] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [battleMode, setBattleMode] = useState("trainers"); // "trainers" or "random"
+  const [battleMode, setBattleMode] = useState("trainers"); // "trainers", "random", or "cpu"
   const [isCreatingRandomBattle, setIsCreatingRandomBattle] = useState(false);
   const [randomBattleMode, setRandomBattleMode] = useState("TOTAL"); // "TOTAL", "BALANCEADO", "EFECTOS"
+  const [cpuDifficulty, setCpuDifficulty] = useState("NORMAL"); // "EASY", "NORMAL", "HARD"
+  const [selectedPlayerTrainer, setSelectedPlayerTrainer] = useState(null);
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,8 +35,28 @@ const BattleSetupView = () => {
       try {
         setLoading(true);
         const response = await entrenadorService.getAll();
-        setEntrenadores(response.data);
-        if (response.data.length < 2) {
+        
+        // Cargar información de Pokémon para cada entrenador
+        const entrenadoresConPokemons = await Promise.all(
+          response.data.map(async (entrenador) => {
+            try {
+              const pokemonResponse = await entrenadorService.getPokemon(entrenador.id);
+              return {
+                ...entrenador,
+                pokemons: pokemonResponse.data || []
+              };
+            } catch (error) {
+              console.error(`Error al cargar Pokémon del entrenador ${entrenador.id}:`, error);
+              return {
+                ...entrenador,
+                pokemons: []
+              };
+            }
+          })
+        );
+        
+        setEntrenadores(entrenadoresConPokemons);
+        if (entrenadoresConPokemons.length < 2) {
           setError("Se necesitan al menos 2 entrenadores para una batalla. Crea más entrenadores primero.");
         }
       } catch (error) {
@@ -93,6 +115,19 @@ const BattleSetupView = () => {
       setError("Error al crear la batalla aleatoria. Por favor, intenta nuevamente.");
     } finally {
       setIsCreatingRandomBattle(false);
+    }
+  };
+
+  const handleCpuBattle = () => {
+    if (selectedPlayerTrainer) {
+      navigate("/battle", {
+        state: { 
+          selectedTrainer1: selectedPlayerTrainer,
+          isCpuBattle: true,
+          cpuDifficulty: cpuDifficulty,
+          cpuIsTeam1: false // La CPU será siempre el entrenador 2
+        },
+      });
     }
   };
 
@@ -267,6 +302,22 @@ const BattleSetupView = () => {
               <span className="feature">⚡ Acción instantánea</span>
               <span className="feature">🎲 Completamente aleatorio</span>
               <span className="feature">🚀 Sin configuración</span>
+            </div>
+          </div>
+
+          <div 
+            className={`battle-mode-card ${battleMode === "cpu" ? "selected" : ""}`}
+            onClick={() => setBattleMode("cpu")}
+          >
+            <div className="mode-icon">🤖</div>
+            <h3 className="mode-title">Batalla vs CPU</h3>
+            <p className="mode-description">
+              Enfrenta a tu entrenador favorito contra la inteligencia artificial
+            </p>
+            <div className="mode-features">
+              <span className="feature">🧠 IA inteligente</span>
+              <span className="feature">⚙️ Dificultad ajustable</span>
+              <span className="feature">🎯 Desafío personalizado</span>
             </div>
           </div>
         </div>
@@ -646,6 +697,141 @@ const BattleSetupView = () => {
                   🎯 Modo seleccionado: <strong>{getModeDisplayName(randomBattleMode)}</strong>
                 </small>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CPU Battle Mode Content */}
+      {battleMode === "cpu" && (
+        <div className="cpu-battle-section">
+          <div className="cpu-battle-card">
+            <div className="cpu-battle-header">
+              <div className="cpu-icon">🤖</div>
+              <h2 className="cpu-title">Batalla vs CPU</h2>
+              <p className="cpu-description">
+                ¡Desafía a la inteligencia artificial! Selecciona tu entrenador favorito y ajusta 
+                la dificultad para una experiencia de batalla personalizada.
+              </p>
+            </div>
+            
+            {/* Player Trainer Selection */}
+            <div className="cpu-trainer-selection">
+              <h3 className="selection-title">
+                <span className="title-icon">👤</span>
+                Selecciona tu Entrenador
+              </h3>
+              
+              {entrenadores.length > 0 ? (
+                <div className="cpu-trainer-grid">
+                  {entrenadores.map((entrenador) => (
+                    <div
+                      key={entrenador.id}
+                      className={`cpu-trainer-card ${selectedPlayerTrainer?.id === entrenador.id ? "selected" : ""}`}
+                      onClick={() => setSelectedPlayerTrainer(entrenador)}
+                    >
+                      <div className="trainer-card-header">
+                        <div className="trainer-avatar">👨‍💼</div>
+                        <h4 className="trainer-name">{entrenador.nombre}</h4>
+                      </div>
+                      <div className="trainer-info">
+                        <span className="pokemon-count">🎯 {entrenador.pokemons?.length || 0} Pokémon</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-trainers-message">
+                  <p>No hay entrenadores disponibles. Crea un entrenador primero.</p>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => navigate("/entrenador/crear")}
+                  >
+                    <span className="btn-icon">➕</span>
+                    Crear Entrenador
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* CPU Difficulty Selection */}
+            <div className="cpu-difficulty-selection">
+              <h3 className="difficulty-title">
+                <span className="title-icon">⚙️</span>
+                Dificultad de la CPU
+              </h3>
+              
+              <div className="difficulty-grid">
+                <div 
+                  className={`difficulty-option ${cpuDifficulty === "EASY" ? "selected" : ""}`}
+                  onClick={() => setCpuDifficulty("EASY")}
+                >
+                  <div className="difficulty-header">
+                    <span className="difficulty-icon">😊</span>
+                    <h4 className="difficulty-name">Fácil</h4>
+                  </div>
+                  <p className="difficulty-description">
+                    La CPU toma decisiones completamente aleatorias. Perfecto para principiantes.
+                  </p>
+                  <div className="difficulty-features">
+                    <span className="feature-tag">🎲 Movimientos aleatorios</span>
+                    <span className="feature-tag">😌 Relajado</span>
+                  </div>
+                </div>
+                
+                <div 
+                  className={`difficulty-option ${cpuDifficulty === "NORMAL" ? "selected" : ""}`}
+                  onClick={() => setCpuDifficulty("NORMAL")}
+                >
+                  <div className="difficulty-header">
+                    <span className="difficulty-icon">🙂</span>
+                    <h4 className="difficulty-name">Normal</h4>
+                  </div>
+                  <p className="difficulty-description">
+                    La CPU toma decisiones básicas pero sensatas. Un desafío equilibrado.
+                  </p>
+                  <div className="difficulty-features">
+                    <span className="feature-tag">🎯 Estrategia básica</span>
+                    <span className="feature-tag">⚖️ Equilibrado</span>
+                  </div>
+                </div>
+                
+                <div 
+                  className={`difficulty-option ${cpuDifficulty === "HARD" ? "selected" : ""}`}
+                  onClick={() => setCpuDifficulty("HARD")}
+                >
+                  <div className="difficulty-header">
+                    <span className="difficulty-icon">😤</span>
+                    <h4 className="difficulty-name">Difícil</h4>
+                  </div>
+                  <p className="difficulty-description">
+                    La CPU analiza amenazas y toma decisiones estratégicas avanzadas.
+                  </p>
+                  <div className="difficulty-features">
+                    <span className="feature-tag">🧠 IA inteligente</span>
+                    <span className="feature-tag">🔥 Desafiante</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="cpu-battle-action">
+              <button
+                className="btn btn-primary btn-lg"
+                onClick={handleCpuBattle}
+                disabled={!selectedPlayerTrainer}
+              >
+                <span className="btn-icon">🤖</span>
+                <span>¡Batalla vs CPU ({cpuDifficulty})!</span>
+              </button>
+              
+              {selectedPlayerTrainer && (
+                <div className="cpu-battle-hint">
+                  <small>
+                    🎯 {selectedPlayerTrainer.nombre} vs CPU • Dificultad: <strong>{cpuDifficulty}</strong>
+                  </small>
+                </div>
+              )}
             </div>
           </div>
         </div>

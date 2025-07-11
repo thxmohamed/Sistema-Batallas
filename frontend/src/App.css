@@ -4426,3 +4426,199 @@ button.selected {
   align-items: center;
   gap: 5px;
 }
+
+.cpu-battle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.cpu-battle-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: all 0.2s ease;
+}
+
+.cpu-battle-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cpu-icon {
+  font-size: 2.5rem;
+  color: #4a5568;
+}
+
+.cpu-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2d3748;
+}
+
+.cpu-description {
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.cpu-trainer-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.cpu-trainer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.cpu-trainer-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cpu-trainer-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.cpu-trainer-card.active {
+  background: rgba(102, 126, 234, 0.2);
+  border: 2px solid #667eea;
+}
+
+.cpu-trainer-card.selected {
+  background: rgba(102, 126, 234, 0.3);
+  border: 2px solid #667eea;
+}
+
+.trainer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.trainer-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pokemon-count {
+  font-size: 0.9rem;  
+  margin-top: 5px;
+}
+
+.no-trainers-message {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #4a5568;
+  margin-top: 20px;
+}
+
+.cpu-difficulty-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.difficulty-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.difficulty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.difficulty-option {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.difficulty-option:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.difficulty-option.active {
+  background: rgba(102, 126, 234, 0.2);
+  border: 2px solid #667eea;
+}
+
+.difficulty-option.selected {
+  background: rgba(102, 126, 234, 0.3);
+  border: 2px solid #667eea;
+}
+
+.difficulty-icon {
+  font-size: 2.5rem;
+  color: #4a5568;
+  margin-bottom: 10px;
+}
+
+.difficulty-description {
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.difficulty-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2d3748;
+  margin-bottom: 5px;
+}
+
+.difficulty-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cpu-battle-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.cpu-battle-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+}
