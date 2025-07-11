@@ -13,32 +13,38 @@ const AudioManager = ({
   const musicVolume = useMemo(() => getEffectiveVolume('music'), [getEffectiveVolume]);
   const sfxVolume = useMemo(() => getEffectiveVolume('sfx'), [getEffectiveVolume]);
 
-  // Background music
+  // Background music - inicializar con volumen fijo y precarga agresiva
   const battleTheme = useAudio(battleMusic, {
-    volume: musicVolume,
-    loop: true
+    volume: 0.5, // Volumen inicial fijo
+    loop: true,
+    preload: 'auto'
   });
 
   const victoryTheme = useAudio(victoryMusic, {
-    volume: musicVolume,
-    loop: false
+    volume: 0.5, // Volumen inicial fijo
+    loop: false,
+    preload: 'auto'
   });
 
-  // Sound effects
+  // Sound effects - inicializar con volumen fijo y precarga
   const attackHitSFX = useAudio('/audio/sfx/pokemon-hit.mp3', {
-    volume: sfxVolume
+    volume: 0.8, // Volumen inicial fijo
+    preload: 'auto'
   });
 
   const effectUseSFX = useAudio('/audio/sfx/effect-use.mp3', {
-    volume: sfxVolume
+    volume: 0.8, // Volumen inicial fijo
+    preload: 'auto'
   });
 
   const pokemonFaintSFX = useAudio('/audio/sfx/pokemon-fainted.mp3', {
-    volume: sfxVolume
+    volume: 0.8, // Volumen inicial fijo
+    preload: 'auto'
   });
 
   const buttonClickSFX = useAudio('/audio/sfx/button-click.mp3', {
-    volume: sfxVolume
+    volume: 0.8, // Volumen inicial fijo
+    preload: 'auto'
   });
 
   // Update volumes when context changes
@@ -83,62 +89,89 @@ const AudioManager = ({
         },
         playVictoryMusic: async () => {
           console.log('🎵 AudioManager: Intentando reproducir música de victoria');
-          console.log('🎵 Estado:', { 
+          console.log('🎵 Estado inicial:', { 
             audioEnabled, 
             victoryLoaded: victoryTheme.isLoaded,
             victoryPlaying: victoryTheme.isPlaying,
             battlePlaying: battleTheme.isPlaying 
           });
           
-          if (audioEnabled) {
-            try {
-              // Ensure battle music is stopped
-              if (battleTheme.isPlaying) {
-                console.log('🎵 Parando música de batalla antes de victoria...');
-                battleTheme.stop();
-              }
-              
-              // Stop victory theme if already playing and reset
-              if (victoryTheme.isPlaying) {
-                victoryTheme.stop();
-              }
-              
-              // Small delay to ensure previous audio is stopped
-              await new Promise(resolve => setTimeout(resolve, 50));
-              
-              // Intentar reproducir música de victoria
-              console.log('🎵 Reproduciendo música de victoria ahora...');
-              
-              // Si no está cargado, intentar forzar la carga
-              if (!victoryTheme.isLoaded) {
-                console.log('🔄 Audio de victoria no cargado, forzando reinicialización...');
-                // Dar tiempo para que se reinicialice
-                await new Promise(resolve => setTimeout(resolve, 200));
-              }
-              
-              await victoryTheme.play();
-              console.log('✅ Música de victoria reproducida exitosamente');
-              
-              return true;
-            } catch (error) {
-              console.error('❌ Error reproduciendo música de victoria:', error);
-              
-              // Intentar crear y reproducir audio de emergencia como último recurso
-              console.log('🚨 Intentando reproducción de emergencia...');
-              try {
-                const emergencyAudio = new Audio('/audio/music/win-theme.mp3');
-                emergencyAudio.volume = getEffectiveVolume('music');
-                await emergencyAudio.play();
-                console.log('✅ Audio de emergencia reproducido exitosamente');
-                return true;
-              } catch (emergencyError) {
-                console.error('❌ Error incluso con audio de emergencia:', emergencyError);
-                return false;
-              }
-            }
-          } else {
+          if (!audioEnabled) {
             console.warn('⚠️ No se puede reproducir música de victoria - audio deshabilitado');
             return false;
+          }
+
+          try {
+            // Stop battle music first
+            if (battleTheme.isPlaying) {
+              console.log('🎵 Deteniendo música de batalla...');
+              battleTheme.stop();
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Stop victory theme if already playing
+            if (victoryTheme.isPlaying) {
+              console.log('🎵 Deteniendo música de victoria previa...');
+              victoryTheme.stop();
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            // Check if victory theme is loaded, if not create fallback immediately
+            if (!victoryTheme.isLoaded) {
+              console.warn('⚠️ Audio de victoria no cargado, usando fallback directo');
+              const fallbackAudio = new Audio('/audio/music/win-theme.mp3');
+              fallbackAudio.volume = musicVolume;
+              fallbackAudio.preload = 'auto';
+              
+              await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                  reject(new Error('Timeout loading fallback audio'));
+                }, 3000);
+                
+                fallbackAudio.addEventListener('canplaythrough', () => {
+                  clearTimeout(timeout);
+                  resolve();
+                }, { once: true });
+                
+                fallbackAudio.addEventListener('error', (e) => {
+                  clearTimeout(timeout);
+                  reject(e);
+                }, { once: true });
+                
+                fallbackAudio.load();
+              });
+              
+              await fallbackAudio.play();
+              console.log('✅ Música de victoria fallback reproducida exitosamente');
+              return true;
+            }
+            
+            // Try to play the loaded victory theme
+            console.log('🎵 Reproduciendo música de victoria cargada...');
+            await victoryTheme.play();
+            console.log('✅ Música de victoria reproducida exitosamente');
+            return true;
+            
+          } catch (error) {
+            console.error('❌ Error reproduciendo música de victoria:', error);
+            
+            // Final fallback - simple audio creation and play
+            try {
+              console.log('🚨 Intentando fallback de emergencia...');
+              const emergencyAudio = new Audio('/audio/music/win-theme.mp3');
+              emergencyAudio.volume = musicVolume;
+              
+              // Force load and play immediately
+              emergencyAudio.load();
+              await new Promise(resolve => setTimeout(resolve, 100));
+              await emergencyAudio.play();
+              
+              console.log('✅ Audio de emergencia reproducido exitosamente');
+              return true;
+            } catch (emergencyError) {
+              console.error('❌ Error incluso con audio de emergencia:', emergencyError);
+              return false;
+            }
           }
         },
         stopVictoryMusic: () => {

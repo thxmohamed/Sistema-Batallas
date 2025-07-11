@@ -6,6 +6,7 @@ export const useAudio = (audioPath, options = {}) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [volume, setVolume] = useState(options.volume || 0.7);
   const [loop, setLoop] = useState(options.loop || false);
+  const [preload, setPreload] = useState(options.preload || 'auto');
   const mountedRef = useRef(true);
 
   // Función para inicializar el audio
@@ -21,9 +22,10 @@ export const useAudio = (audioPath, options = {}) => {
     }
 
     const audio = new Audio(audioPath);
-    audio.volume = volume;
+    audio.volume = options.volume || 0.7; // Usar volumen inicial de opciones
     audio.loop = loop;
-    audio.preload = 'auto';
+    audio.preload = preload; // Usar configuración de precarga
+    audio.crossOrigin = 'anonymous'; // Para evitar problemas de CORS
     
     // Event listeners
     const handleCanPlayThrough = () => {
@@ -67,7 +69,7 @@ export const useAudio = (audioPath, options = {}) => {
         audio.pause();
       }
     };
-  }, [audioPath, volume, loop]);
+  }, [audioPath, loop, preload]); // Agregado preload a las dependencias
 
   useEffect(() => {
     mountedRef.current = true;
@@ -91,70 +93,83 @@ export const useAudio = (audioPath, options = {}) => {
     };
   }, []);
 
-  // Update volume and loop when they change
+  // Update volume and loop when they change (SIN reinicializar)
   useEffect(() => {
     if (audioRef.current && mountedRef.current) {
       audioRef.current.volume = volume;
       audioRef.current.loop = loop;
+      audioRef.current.preload = preload;
+      console.log('🎵 Configuración actualizada para', audioPath, '- Volume:', volume, 'Loop:', loop, 'Preload:', preload);
     }
-  }, [volume, loop]);
+  }, [volume, loop, preload, audioPath]);
 
   const play = async () => {
-    // Verificar que el componente sigue montado y el audio existe
+    // Verificar que el componente sigue montado
     if (!mountedRef.current) {
       console.warn('⚠️ Componente desmontado, no se puede reproducir audio:', audioPath);
-      return;
+      return Promise.reject('Component unmounted');
     }
 
-    // Si no hay referencia, intentar reinicializar
-    if (!audioRef.current) {
-      console.warn('⚠️ audioRef es null, reintentando inicialización...', audioPath);
+    // Si no hay referencia o no está cargado, intentar reinicializar
+    if (!audioRef.current || !isLoaded) {
+      console.warn('⚠️ Audio no disponible, reintentando inicialización...', audioPath);
       initializeAudio();
-      // Esperar un momento para que se inicialice
-      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Esperar a que se cargue con timeout
+      const maxWaitTime = 3000; // 3 segundos máximo
+      const startTime = Date.now();
+      
+      while ((!audioRef.current || !isLoaded) && (Date.now() - startTime) < maxWaitTime && mountedRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      if (!audioRef.current || !isLoaded) {
+        console.error('❌ Audio no se pudo cargar después de espera:', audioPath);
+        return Promise.reject('Audio failed to load');
+      }
     }
 
     if (audioRef.current && isLoaded && mountedRef.current) {
       try {
-        // Reset to beginning and ensure it's not paused
+        // Reset to beginning
         audioRef.current.currentTime = 0;
         
         // Ensure volume is set correctly
         audioRef.current.volume = volume;
         
-        console.log('🎵 Reproduciendo audio:', audioPath, 'Volume:', volume, 'audioRef exists:', !!audioRef.current);
+        console.log('🎵 Reproduciendo audio:', audioPath, 'Volume:', volume);
         
         const playPromise = audioRef.current.play();
         
         if (playPromise !== undefined) {
           await playPromise;
           console.log('✅ Audio reproducido exitosamente:', audioPath);
+          return Promise.resolve();
         }
       } catch (error) {
         console.warn('❌ Error playing audio:', audioPath, error.message);
-        // Try again after a short delay if it's a user interaction error
+        
+        // Try again for user interaction errors
         if (error.name === 'NotAllowedError') {
-          console.log('🔄 Reintentando reproducción de audio tras interacción de usuario...');
+          console.log('🔄 Reintentando reproducción tras interacción...');
           setTimeout(async () => {
             try {
               if (audioRef.current && mountedRef.current) {
                 await audioRef.current.play();
-                console.log('✅ Audio reproducido exitosamente en segundo intento:', audioPath);
+                console.log('✅ Audio reproducido en segundo intento:', audioPath);
               }
             } catch (retryError) {
               console.warn('❌ Error en segundo intento:', retryError.message);
             }
           }, 100);
         }
+        
+        return Promise.reject(error);
       }
     } else {
-      console.warn('⚠️ No se puede reproducir audio:', audioPath, 'isLoaded:', isLoaded, 'audioRef exists:', !!audioRef.current, 'mounted:', mountedRef.current);
-      
-      // Intentar una reinicialización forzada si es crítico (como audio de victoria)
-      if (audioPath && audioPath.includes('win-theme') && mountedRef.current) {
-        console.log('🔄 Forzando reinicialización para audio de victoria...');
-        initializeAudio();
-      }
+      const error = `Cannot play audio ${audioPath}: isLoaded=${isLoaded}, audioRef=${!!audioRef.current}, mounted=${mountedRef.current}`;
+      console.warn('⚠️', error);
+      return Promise.reject(error);
     }
   };
 
@@ -174,8 +189,11 @@ export const useAudio = (audioPath, options = {}) => {
   const changeVolume = (newVolume) => {
     const vol = Math.max(0, Math.min(1, newVolume));
     setVolume(vol);
+    
+    // Actualizar inmediatamente el volumen del audio si existe
     if (audioRef.current && mountedRef.current) {
       audioRef.current.volume = vol;
+      console.log('🎵 Volumen cambiado inmediatamente para', audioPath, ':', vol);
     }
   };
 
@@ -187,7 +205,8 @@ export const useAudio = (audioPath, options = {}) => {
     isLoaded,
     volume,
     setVolume: changeVolume,
-    setLoop
+    setLoop,
+    setPreload
   };
 };
 

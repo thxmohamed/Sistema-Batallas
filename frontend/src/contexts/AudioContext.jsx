@@ -20,9 +20,9 @@ export const AudioProvider = ({ children }) => {
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [audioEnabled, setAudioEnabled] = useState(true);
 
-  // Música de fondo global
+  // Música de fondo global - volumen inicial fijo para evitar reinicios
   const mainTheme = useAudio('/audio/music/main-theme.mp3', {
-    volume: 0,
+    volume: 0.5, // Volumen inicial fijo
     loop: true
   });
 
@@ -100,8 +100,8 @@ export const AudioProvider = ({ children }) => {
     const baseVolume = type === 'music' ? musicVolume : sfxVolume;
     const effectiveVolume = masterVolume * baseVolume;
     
-    // Evitar que el volumen sea 0 a menos que esté explícitamente silenciado
-    return effectiveVolume > 0 ? Math.max(effectiveVolume, 0.01) : 0;
+    // Retornar el volumen calculado sin modificaciones artificiales
+    return Math.max(0, Math.min(1, effectiveVolume));
   };
 
   const contextValue = {

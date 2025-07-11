@@ -41,9 +41,7 @@ const AudioControls = ({ className = '' }) => {
           className={`mute-toggle-btn ${isMuted ? 'muted' : ''}`}
           title={isMuted ? 'Activar Sonido' : 'Silenciar'}
         >
-          <span className="btn-icon">
-            {isMuted ? '�' : '�'}
-          </span>
+          <span className="btn-icon">{isMuted ? '🔕' : '🔔'}</span>
         </button>
       )}
 

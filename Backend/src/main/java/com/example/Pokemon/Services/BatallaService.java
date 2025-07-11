@@ -53,34 +53,42 @@ public class BatallaService {
 
     /**
      * Crea una batalla aleatoria con equipos generados automáticamente
+     * Cada equipo tendrá 3 Pokémon diferentes entre sí, pero pueden repetirse entre equipos
      */
     public BatallaDTO crearBatallaAleatoria() {
+        return crearBatallaAleatoriaConModo("TOTAL");
+    }
+    
+    /**
+     * Crea una batalla aleatoria con el modo especificado
+     * @param modo: "TOTAL", "BALANCEADO", "EFECTOS"
+     */
+    public BatallaDTO crearBatallaAleatoriaConModo(String modo) {
         // Obtener todos los Pokémon disponibles
         List<Pokemon> todosLosPokemon = pokemonService.getAllPokemon();
         
-        if (todosLosPokemon.size() < 6) {
-            throw new RuntimeException("Se necesitan al menos 6 Pokémon en la base de datos para crear una batalla aleatoria");
+        if (todosLosPokemon.size() < 3) {
+            throw new RuntimeException("Se necesitan al menos 3 Pokémon en la base de datos para crear una batalla aleatoria");
         }
         
-        // Crear una copia para no modificar la lista original
-        List<Pokemon> pokemonDisponibles = new ArrayList<>(todosLosPokemon);
-        
-        // Mezclar la lista
-        Collections.shuffle(pokemonDisponibles);
-        
-        // Seleccionar 6 Pokémon únicos
-        List<Pokemon> pokemonSeleccionados = pokemonDisponibles.stream()
-            .limit(6)
-            .collect(Collectors.toList());
-        
         // Crear copias de los Pokémon para la batalla (para no modificar los originales)
-        List<Pokemon> equipo1 = pokemonSeleccionados.subList(0, 3).stream()
-            .map(this::crearCopiaPokemon)
-            .collect(Collectors.toList());
-            
-        List<Pokemon> equipo2 = pokemonSeleccionados.subList(3, 6).stream()
-            .map(this::crearCopiaPokemon)
-            .collect(Collectors.toList());
+        List<Pokemon> equipo1, equipo2;
+        
+        switch (modo.toUpperCase()) {
+            case "BALANCEADO":
+                equipo1 = seleccionarEquipoBalanceado(todosLosPokemon);
+                equipo2 = seleccionarEquipoBalanceado(todosLosPokemon);
+                break;
+            case "EFECTOS":
+                equipo1 = seleccionarEquipoEfectosBalanceados(todosLosPokemon);
+                equipo2 = seleccionarEquipoEfectosBalanceados(todosLosPokemon);
+                break;
+            case "TOTAL":
+            default:
+                equipo1 = seleccionarEquipoAleatorio(todosLosPokemon);
+                equipo2 = seleccionarEquipoAleatorio(todosLosPokemon);
+                break;
+        }
         
         // Crear BatallaDTO
         BatallaDTO batallaAleatoria = new BatallaDTO();
@@ -110,7 +118,7 @@ public class BatallaService {
         batallaAleatoria.setTurnosRestantesEquipo1(0);
         batallaAleatoria.setTurnosRestantesEquipo2(0);
         
-        System.out.println("=== BATALLA ALEATORIA CREADA ===");
+        System.out.println("=== BATALLA ALEATORIA CREADA (" + modo.toUpperCase() + ") ===");
         System.out.println("Equipo 1 (" + batallaAleatoria.getNombreEquipo1() + "):");
         equipo1.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
         System.out.println("Equipo 2 (" + batallaAleatoria.getNombreEquipo2() + "):");
@@ -375,4 +383,136 @@ public class BatallaService {
         return batalla;
     }
 
+    /**
+     * Selecciona 3 Pokémon aleatorios diferentes para formar un equipo
+     */
+    private List<Pokemon> seleccionarEquipoAleatorio(List<Pokemon> todosLosPokemon) {
+        // Crear una copia para no modificar la lista original
+        List<Pokemon> pokemonDisponibles = new ArrayList<>(todosLosPokemon);
+        
+        // Mezclar la lista
+        Collections.shuffle(pokemonDisponibles);
+        
+        // Seleccionar 3 Pokémon únicos para este equipo
+        return pokemonDisponibles.stream()
+            .limit(3)
+            .map(this::crearCopiaPokemon)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Selecciona 3 Pokémon de tipos diferentes para formar un equipo balanceado
+     */
+    private List<Pokemon> seleccionarEquipoBalanceado(List<Pokemon> todosLosPokemon) {
+        List<Pokemon> equipoBalanceado = new ArrayList<>();
+        List<Pokemon.TipoPokemon> tiposUsados = new ArrayList<>();
+        List<Pokemon> pokemonDisponibles = new ArrayList<>(todosLosPokemon);
+        Collections.shuffle(pokemonDisponibles);
+        
+        // Intentar seleccionar 3 Pokémon de tipos diferentes
+        for (Pokemon pokemon : pokemonDisponibles) {
+            if (equipoBalanceado.size() >= 3) {
+                break;
+            }
+            
+            if (!tiposUsados.contains(pokemon.getTipoPokemon())) {
+                equipoBalanceado.add(crearCopiaPokemon(pokemon));
+                tiposUsados.add(pokemon.getTipoPokemon());
+            }
+        }
+        
+        // Si no pudimos obtener 3 tipos diferentes, completar con Pokémon aleatorios
+        while (equipoBalanceado.size() < 3) {
+            for (Pokemon pokemon : pokemonDisponibles) {
+                if (equipoBalanceado.size() >= 3) {
+                    break;
+                }
+                
+                // Verificar que no sea el mismo Pokémon (por ID)
+                boolean yaEstaEnEquipo = equipoBalanceado.stream()
+                    .anyMatch(p -> p.getId().equals(pokemon.getId()));
+                
+                if (!yaEstaEnEquipo) {
+                    equipoBalanceado.add(crearCopiaPokemon(pokemon));
+                }
+            }
+            
+            // Prevenir bucle infinito si no hay suficientes Pokémon únicos
+            if (equipoBalanceado.size() < 3 && pokemonDisponibles.size() < 3) {
+                break;
+            }
+        }
+        
+        System.out.println("Equipo balanceado por tipos:");
+        equipoBalanceado.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
+        
+        return equipoBalanceado;
+    }
+    
+    /**
+     * Selecciona 3 Pokémon con tipos de efectos diferentes para formar un equipo balanceado
+     */
+    private List<Pokemon> seleccionarEquipoEfectosBalanceados(List<Pokemon> todosLosPokemon) {
+        List<Pokemon> equipoBalanceado = new ArrayList<>();
+        List<Efecto.tipoEfecto> efectosUsados = new ArrayList<>();
+        List<Pokemon> pokemonDisponibles = new ArrayList<>(todosLosPokemon);
+        Collections.shuffle(pokemonDisponibles);
+        
+        // Intentar seleccionar 3 Pokémon con efectos diferentes
+        for (Pokemon pokemon : pokemonDisponibles) {
+            if (equipoBalanceado.size() >= 3) {
+                break;
+            }
+            
+            if (pokemon.getIdEfecto() != null) {
+                try {
+                    Efecto efecto = efectoService.findEfectoById(pokemon.getIdEfecto());
+                    if (efecto != null && !efectosUsados.contains(efecto.getTipoEfecto())) {
+                        equipoBalanceado.add(crearCopiaPokemon(pokemon));
+                        efectosUsados.add(efecto.getTipoEfecto());
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error al obtener efecto para " + pokemon.getNombre() + ": " + e.getMessage());
+                }
+            }
+        }
+        
+        // Si no pudimos obtener 3 efectos diferentes, completar con Pokémon aleatorios
+        while (equipoBalanceado.size() < 3) {
+            for (Pokemon pokemon : pokemonDisponibles) {
+                if (equipoBalanceado.size() >= 3) {
+                    break;
+                }
+                
+                // Verificar que no sea el mismo Pokémon (por ID)
+                boolean yaEstaEnEquipo = equipoBalanceado.stream()
+                    .anyMatch(p -> p.getId().equals(pokemon.getId()));
+                
+                if (!yaEstaEnEquipo) {
+                    equipoBalanceado.add(crearCopiaPokemon(pokemon));
+                }
+            }
+            
+            // Prevenir bucle infinito si no hay suficientes Pokémon únicos
+            if (equipoBalanceado.size() < 3 && pokemonDisponibles.size() < 3) {
+                break;
+            }
+        }
+        
+        System.out.println("Equipo balanceado por efectos:");
+        equipoBalanceado.forEach(p -> {
+            try {
+                if (p.getIdEfecto() != null) {
+                    Efecto efecto = efectoService.findEfectoById(p.getIdEfecto());
+                    System.out.println("  - " + p.getNombre() + " (Efecto: " + (efecto != null ? efecto.getTipoEfecto() : "Desconocido") + ")");
+                } else {
+                    System.out.println("  - " + p.getNombre() + " (Sin efecto)");
+                }
+            } catch (Exception e) {
+                System.out.println("  - " + p.getNombre() + " (Error al obtener efecto)");
+            }
+        });
+        
+        return equipoBalanceado;
+    }
 }

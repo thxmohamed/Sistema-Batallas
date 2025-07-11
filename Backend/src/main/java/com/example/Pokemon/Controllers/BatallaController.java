@@ -52,4 +52,15 @@ public class BatallaController {
         BatallaDTO batallaAleatoria = batallaService.crearBatallaAleatoria();
         return new ResponseEntity<>(batallaAleatoria, HttpStatus.CREATED);
     }
+    
+    @PostMapping("/batalla-aleatoria/{modo}")
+    public ResponseEntity<BatallaDTO> crearBatallaAleatoriaConModo(@PathVariable String modo) {
+        try {
+            BatallaDTO batallaAleatoria = batallaService.crearBatallaAleatoriaConModo(modo);
+            return new ResponseEntity<>(batallaAleatoria, HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.err.println("Error al crear batalla aleatoria con modo " + modo + ": " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
 }

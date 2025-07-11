@@ -88,55 +88,68 @@ const BattleView = () => {
     }
   };
 
-  // SOLUCIÓN DEFINITIVA: Crear instancia global de audio que persista
-  // incluso cuando el componente se desmonte
-  const createPersistentVictoryAudio = () => {
-    // Si ya existe una instancia global, usarla
-    if (!window._victoryAudioInstance) {
-      window._victoryAudioInstance = new Audio('/audio/music/win-theme.mp3');
-      window._victoryAudioInstance.volume = 0.7;
-      window._victoryAudioInstance.loop = false;
-    }
-    return window._victoryAudioInstance;
-  };
-
   // Handle victory music when winner is set
   useEffect(() => {
-    if (winner) {
+    if (winner && audioControls && audioControls.isAudioEnabled) {
+      console.log('🏆 Winner detected, preparing victory sequence:', winner);
       
-      // Método 1: Intentar con AudioManager si está disponible
-      if (audioControls && audioControls.isAudioEnabled) {
-        
+      const playVictorySequence = async () => {
         try {
+          // Step 1: Stop battle music immediately
+          console.log('🎵 Step 1: Stopping battle music...');
           audioControls.stopBattleMusic();
           setBattleMusicPlaying(false);
-        } catch (e) {
-          // Silently handle error
-        }
-        
-        setTimeout(async () => {
-          try {
-            await audioControls.playVictoryMusic();
-          } catch (error) {
-            // Fallback al método persistente
-            const persistentAudio = createPersistentVictoryAudio();
-            persistentAudio.currentTime = 0;
-            persistentAudio.play().catch(() => {
-              // Silently handle error
+          
+          // Step 2: Wait a moment for battle music to stop
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          // Step 3: Attempt to play victory music
+          console.log('🎵 Step 3: Playing victory music...');
+          const victorySuccess = await audioControls.playVictoryMusic();
+          
+          if (victorySuccess) {
+            console.log('✅ Victory music sequence completed successfully');
+          } else {
+            console.warn('⚠️ Victory music failed, trying manual fallback...');
+            // Manual fallback as last resort
+            const manualAudio = new Audio('/audio/music/win-theme.mp3');
+            manualAudio.volume = 0.6;
+            manualAudio.preload = 'auto';
+            
+            // Wait for it to load
+            await new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => reject(new Error('Timeout')), 5000);
+              manualAudio.addEventListener('canplaythrough', () => {
+                clearTimeout(timeout);
+                resolve();
+              }, { once: true });
+              manualAudio.load();
             });
+            
+            await manualAudio.play();
+            console.log('✅ Manual fallback victory music played');
           }
-        }, 500);
-        
-      } else {
-        // Método 2: Usar instancia persistente directamente
-        setTimeout(() => {
-          const persistentAudio = createPersistentVictoryAudio();
-          persistentAudio.currentTime = 0;
-          persistentAudio.play().catch(() => {
-            // Silently handle error
-          });
-        }, 500);
-      }
+          
+        } catch (error) {
+          console.error('❌ Complete victory sequence failed:', error);
+          
+          // Last ditch effort - simple direct play
+          try {
+            const lastResortAudio = new Audio('/audio/music/win-theme.mp3');
+            lastResortAudio.volume = 0.5;
+            lastResortAudio.play().then(() => {
+              console.log('✅ Last resort audio played');
+            }).catch(e => {
+              console.error('❌ Even last resort failed:', e);
+            });
+          } catch (e) {
+            console.error('❌ All victory music attempts failed:', e);
+          }
+        }
+      };
+      
+      // Execute the victory sequence
+      playVictorySequence();
     }
   }, [winner, audioControls]);
 
@@ -530,15 +543,7 @@ const BattleView = () => {
           setBattleLog(prev => [...prev, `¡${winnerTrainer} ha ganado la batalla!`]);
         }
         
-        // Immediate victory audio as backup (in case useEffect doesn't trigger)
-        if (audioControls && audioControls.isAudioEnabled) {
-          setTimeout(() => {
-            audioControls.stopBattleMusic();
-            setTimeout(() => {
-              audioControls.playVictoryMusic();
-            }, 200);
-          }, 50);
-        }
+        // La música de victoria se maneja en el useEffect cuando se establece el winner
       } else {
         setTurn(turn + 1);
       }

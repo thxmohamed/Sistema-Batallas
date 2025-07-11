@@ -20,10 +20,15 @@ const createRandomBattle = () => {
     return httpClient.post('/batalla/batalla-aleatoria')
 }
 
+const createRandomBattleWithMode = (mode) => {
+    return httpClient.post(`/batalla/batalla-aleatoria/${mode}`)
+}
+
 export default {
     getAll,
     getById,
     create,
     combatir,
-    createRandomBattle
+    createRandomBattle,
+    createRandomBattleWithMode
 }

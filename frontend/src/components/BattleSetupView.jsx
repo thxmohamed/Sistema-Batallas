@@ -13,6 +13,7 @@ const BattleSetupView = () => {
   const [error, setError] = useState("");
   const [battleMode, setBattleMode] = useState("trainers"); // "trainers" or "random"
   const [isCreatingRandomBattle, setIsCreatingRandomBattle] = useState(false);
+  const [randomBattleMode, setRandomBattleMode] = useState("TOTAL"); // "TOTAL", "BALANCEADO", "EFECTOS"
   
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,13 +78,14 @@ const BattleSetupView = () => {
   const handleRandomBattle = async () => {
     try {
       setIsCreatingRandomBattle(true);
-      const response = await batallaService.createRandomBattle();
+      const response = await batallaService.createRandomBattleWithMode(randomBattleMode);
       
       // Navigate to battle with random battle data
       navigate("/battle", {
         state: { 
           randomBattle: response.data,
-          isRandomBattle: true 
+          isRandomBattle: true,
+          battleMode: randomBattleMode
         },
       });
     } catch (error) {
@@ -189,6 +191,20 @@ const BattleSetupView = () => {
     setShowDetailsModal(false);
     setSelectedTrainerDetails(null);
     setTrainerPokemonDetails([]);
+  };
+
+  // Helper function para mostrar nombres de modo más amigables
+  const getModeDisplayName = (mode) => {
+    switch (mode) {
+      case "TOTAL":
+        return "Aleatoria";
+      case "BALANCEADO":
+        return "Balanceada por Tipo";
+      case "EFECTOS":
+        return "Balanceada por Efectos";
+      default:
+        return "Aleatoria";
+    }
   };
 
   if (loading) {
@@ -540,28 +556,68 @@ const BattleSetupView = () => {
               <div className="random-icon">🎲</div>
               <h2 className="random-title">Batalla Aleatoria</h2>
               <p className="random-description">
-                ¡Prepárate para una batalla completamente impredecible! El sistema seleccionará 
-                automáticamente 6 Pokémon aleatorios y los dividirá en dos equipos de 3 cada uno.
+                ¡Prepárate para una batalla completamente impredecible! Elige el modo de aleatoriedad 
+                que prefieras y el sistema generará automáticamente dos equipos de 3 Pokémon cada uno.
               </p>
             </div>
             
-            <div className="random-battle-features">
-              <div className="feature-grid">
-                <div className="feature-item">
-                  <span className="feature-icon">⚡</span>
-                  <span className="feature-text">Acción instantánea</span>
+            {/* Mode Selection */}
+            <div className="random-mode-selection">
+              <h3 className="mode-selection-title">
+                <span className="title-icon">⚙️</span>
+                Modo de Aleatoriedad
+              </h3>
+              
+              <div className="random-mode-grid">
+                <div 
+                  className={`random-mode-option ${randomBattleMode === "TOTAL" ? "selected" : ""}`}
+                  onClick={() => setRandomBattleMode("TOTAL")}
+                >
+                  <div className="mode-option-header">
+                    <span className="mode-option-icon">🎲</span>
+                    <h4 className="mode-option-title">Aleatorio Total</h4>
+                  </div>
+                  <p className="mode-option-description">
+                    Selección completamente aleatoria. Cada equipo tendrá 3 Pokémon diferentes entre sí.
+                  </p>
+                  <div className="mode-option-features">
+                    <span className="feature-tag">🎯 Sin restricciones</span>
+                    <span className="feature-tag">⚡ Máxima variedad</span>
+                  </div>
                 </div>
-                <div className="feature-item">
-                  <span className="feature-icon">🎯</span>
-                  <span className="feature-text">Sin configuración</span>
+                
+                <div 
+                  className={`random-mode-option ${randomBattleMode === "BALANCEADO" ? "selected" : ""}`}
+                  onClick={() => setRandomBattleMode("BALANCEADO")}
+                >
+                  <div className="mode-option-header">
+                    <span className="mode-option-icon">⚖️</span>
+                    <h4 className="mode-option-title">Balanceado por Tipo</h4>
+                  </div>
+                  <p className="mode-option-description">
+                    Cada equipo tendrá 3 Pokémon de tipos diferentes (Fuego, Agua, Planta, etc.).
+                  </p>
+                  <div className="mode-option-features">
+                    <span className="feature-tag">🔥 Diversidad de tipos</span>
+                    <span className="feature-tag">⚡ Estrategia equilibrada</span>
+                  </div>
                 </div>
-                <div className="feature-item">
-                  <span className="feature-icon">🔥</span>
-                  <span className="feature-text">Pura emoción</span>
-                </div>
-                <div className="feature-item">
-                  <span className="feature-icon">🎲</span>
-                  <span className="feature-text">Completamente aleatorio</span>
+                
+                <div 
+                  className={`random-mode-option ${randomBattleMode === "EFECTOS" ? "selected" : ""}`}
+                  onClick={() => setRandomBattleMode("EFECTOS")}
+                >
+                  <div className="mode-option-header">
+                    <span className="mode-option-icon">✨</span>
+                    <h4 className="mode-option-title">Efectos Balanceados</h4>
+                  </div>
+                  <p className="mode-option-description">
+                    Cada equipo tendrá 3 Pokémon con tipos de efectos especiales diferentes.
+                  </p>
+                  <div className="mode-option-features">
+                    <span className="feature-tag">💫 Efectos únicos</span>
+                    <span className="feature-tag">🧪 Combate táctico</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -580,14 +636,14 @@ const BattleSetupView = () => {
                 ) : (
                   <>
                     <span className="btn-icon">🎲</span>
-                    <span>¡Generar Batalla Aleatoria!</span>
+                    <span>¡Generar Batalla {getModeDisplayName(randomBattleMode)}!</span>
                   </>
                 )}
               </button>
               
               <div className="random-battle-hint">
                 <small className="form-hint">
-                  🎯 El sistema elegirá automáticamente 6 Pokémon de la base de datos
+                  🎯 Modo seleccionado: <strong>{getModeDisplayName(randomBattleMode)}</strong>
                 </small>
               </div>
             </div>

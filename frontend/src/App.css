@@ -1531,6 +1531,8 @@ button.selected {
 .btn-icon {
   margin-right: 10px;
   font-size: 1.2rem;
+  color: #fff;
+  transition: color 0.3s ease;
 }
 
 /* Estado vacío mejorado */
@@ -1797,27 +1799,6 @@ button.selected {
   gap: 20px;
 }
 
-.feature-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
-  transition: all 0.3s ease;
-}
-
-.feature-item:hover {
-  transform: translateX(5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  font-size: 1.8rem;
-  flex-shrink: 0;
-}
-
 .feature-content h3 {
   font-size: 1.2rem;
   font-weight: 600;
@@ -1987,12 +1968,6 @@ button.selected {
   font-size: 1.1rem;
   min-width: 200px;
 }
-
-.btn-icon {
-  margin-right: 10px;
-  font-size: 1.2rem;
-}
-
 /* =========================
    ESTILOS CREAR POKÉMON
    ========================= */
@@ -2377,27 +2352,6 @@ button.selected {
   gap: 20px;
 }
 
-.feature-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
-  transition: all 0.3s ease;
-}
-
-.feature-item:hover {
-  transform: translateX(5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  font-size: 1.8rem;
-  flex-shrink: 0;
-}
-
 .feature-content h3 {
   font-size: 1.2rem;
   font-weight: 600;
@@ -2526,11 +2480,6 @@ button.selected {
   min-width: 200px;
 }
 
-.btn-icon {
-  margin-right: 10px;
-  font-size: 1.2rem;
-}
-
 /* =========================
    ESTILOS CREAR POKÉMON
    ========================= */
@@ -2599,6 +2548,13 @@ button.selected {
 /* Hints del formulario */
 .form-hint {
   color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+  margin-top: 5px;
+}
+
+.form-hint2 {
+  color: #f8faff;
   font-size: 0.875rem;
   font-style: italic;
   margin-top: 5px;
@@ -3092,10 +3048,6 @@ button.selected {
   min-width: 200px;
 }
 
-.btn-icon {
-  margin-right: 10px;
-  font-size: 1.2rem;
-}
 
 /* ===============================================
    ESTILOS PARA FILTROS Y PAGINACIÓN
@@ -3354,10 +3306,6 @@ button.selected {
 .pagination-controls .btn-sm {
   padding: 8px 14px;
   font-size: 0.85rem;
-}
-
-.btn-icon {
-  font-size: 0.9rem;
 }
 
 /* Estado vacío mejorado */
@@ -3657,7 +3605,7 @@ button.selected {
   background: white;
   border-radius: 8px;
   font-weight: 600;
-  color: #374151;
+  color: #374951;
   transition: all 0.2s ease;
   cursor: pointer;
 }
@@ -4302,4 +4250,179 @@ button.selected {
   font-size: 1.5rem;
   margin-right: 8px;
   color: #ff3333; /* Rojo para indicar la falta de datos */
+}
+
+.random-description {
+  font-size: 0.95rem;
+  color: #1f4a68;
+  margin-top: 10px;
+  line-height: 1.5;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+  text-align: center;
+  max-width: 400px;
+  margin: 20px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.random-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2d3748;
+  margin-bottom: 10px;
+}
+
+.random-battle-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.random-icon {
+  font-size: 2rem;
+  color: #4a5568;
+}
+
+.random-battle-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: all 0.2s ease;
+}
+
+.random-battle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.random-battle-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.feature-text {
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.4;
+}
+
+.random-battle-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.random-battle-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 10px;
+}
+
+.random-mode-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.mode-selection-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.random-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.random-mode-option {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.random-mode-option:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.random-mode-option.active {
+  background: rgba(102, 126, 234, 0.2);
+  border: 2px solid #667eea;
+}
+
+.random-mode-option.selected {
+  background: rgba(102, 126, 234, 0.3);
+  border: 2px solid #667eea;
+}
+
+.mode-option-icon {
+  font-size: 2.5rem;
+  color: #4a5568;
+  margin-bottom: 10px;
+}
+
+.mode-option-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 5px;
+}
+
+.mode-option-description {
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.4;
+}
+
+.mode-option-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.feature-tag {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 0.9rem;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
