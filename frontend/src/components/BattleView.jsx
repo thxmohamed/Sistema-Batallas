@@ -71,6 +71,12 @@ const BattleView = () => {
     team2: { effectId: null, turnsRemaining: 0 }
   });
 
+  // Estados para contadores de turnos sin atacar (factor de agresividad CPU)
+  const [turnosSinAtacar, setTurnosSinAtacar] = useState({
+    equipo1: 0,
+    equipo2: 0
+  });
+
   // Audio references
   const audioRef = useRef(null);
   const [audioControls, setAudioControls] = useState(null);
@@ -415,7 +421,15 @@ const BattleView = () => {
       const batallaDTO = {
         entrenador1: currentPokemonData1,
         entrenador2: currentPokemonData2,
-        turno: currentTurn
+        turno: currentTurn,
+        // Incluir efectos de equipo actuales
+        efectoContinuoEquipo1: teamEffects.team1.effectId,
+        efectoContinuoEquipo2: teamEffects.team2.effectId,
+        turnosRestantesEquipo1: teamEffects.team1.turnsRemaining,
+        turnosRestantesEquipo2: teamEffects.team2.turnsRemaining,
+        // Incluir contadores de turnos sin atacar para factor de agresividad
+        turnosSinAtacarEquipo1: turnosSinAtacar.equipo1,
+        turnosSinAtacarEquipo2: turnosSinAtacar.equipo2
       };
 
       console.log("🤖 CPU: Enviando request:", {
@@ -664,6 +678,9 @@ const BattleView = () => {
         efectoContinuoEquipo2: teamEffects.team2.effectId,
         turnosRestantesEquipo1: teamEffects.team1.turnsRemaining,
         turnosRestantesEquipo2: teamEffects.team2.turnsRemaining,
+        // Incluir contadores de turnos sin atacar para factor de agresividad
+        turnosSinAtacarEquipo1: turnosSinAtacar.equipo1,
+        turnosSinAtacarEquipo2: turnosSinAtacar.equipo2
       };
 
       const response = await batallaService.combatir(
@@ -686,6 +703,12 @@ const BattleView = () => {
           effectId: response.data.efectoContinuoEquipo2 || null,
           turnsRemaining: response.data.turnosRestantesEquipo2 || 0
         }
+      });
+
+      // Actualizar contadores de turnos sin atacar desde la respuesta del backend
+      setTurnosSinAtacar({
+        equipo1: response.data.turnosSinAtacarEquipo1 || 0,
+        equipo2: response.data.turnosSinAtacarEquipo2 || 0
       });
 
       // Update lives

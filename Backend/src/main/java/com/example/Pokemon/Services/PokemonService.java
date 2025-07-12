@@ -66,7 +66,6 @@ public class PokemonService {
 
         Random random = new Random();
         int danoAleatorio = random.nextInt(84, 101);
-        System.out.println("El daño aleatorio es: " + danoAleatorio);
 
         //double danoBase = (ataqueAgresor * potencia * stab * efectividad) /(1 + ((double) defensaAgredido * 2));
         //long danoTotal = (long) Math.floor(danoBase + danoAleatorio);

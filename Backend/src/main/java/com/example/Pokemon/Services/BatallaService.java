@@ -118,6 +118,10 @@ public class BatallaService {
         batallaAleatoria.setTurnosRestantesEquipo1(0);
         batallaAleatoria.setTurnosRestantesEquipo2(0);
         
+        // Contadores de turnos sin atacar para factor de agresividad
+        batallaAleatoria.setTurnosSinAtacarEquipo1(0);
+        batallaAleatoria.setTurnosSinAtacarEquipo2(0);
+        
         System.out.println("=== BATALLA ALEATORIA CREADA (" + modo.toUpperCase() + ") ===");
         System.out.println("Equipo 1 (" + batallaAleatoria.getNombreEquipo1() + "):");
         equipo1.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
@@ -356,13 +360,15 @@ public class BatallaService {
         // VERIFICAR SI ALGUIEN HA GANADO POR DAÑO CONTINUO (después de aplicarlo)
         boolean equipoEntrenador1Derrotado = entrenador1.stream().allMatch(p -> p.getVida() <= 0);
         boolean equipoEntrenador2Derrotado = entrenador2.stream().allMatch(p -> p.getVida() <= 0);
-        
-        if (equipoEntrenador1Derrotado || equipoEntrenador2Derrotado) {
+          if (equipoEntrenador1Derrotado || equipoEntrenador2Derrotado) {
             System.out.println("¡Batalla terminada por daño continuo!");
             batalla.setTurno(turnoActual + 1); // Incrementar turno para el frontend
             return batalla;
         }
-        
+
+        // ACTUALIZAR CONTADORES DE TURNOS SIN ATACAR para factor de agresividad
+        updateTurnosSinAtacar(batalla, esEquipo1);
+
         // Limpiar las acciones del turno
         batalla.setataqueE1(null);
         batalla.setataqueE2(null);
@@ -514,5 +520,35 @@ public class BatallaService {
         });
         
         return equipoBalanceado;
+    }
+    
+    /**
+     * Actualiza los contadores de turnos sin atacar para el factor de agresividad
+     * Solo actualiza el contador del equipo que está jugando en este turno
+     */
+    private void updateTurnosSinAtacar(BatallaDTO batalla, boolean esEquipo1) {
+        if (esEquipo1) {
+            // Es el turno del Equipo 1
+            if (batalla.isUsarEfectoE1()) {
+                // Equipo 1 usó efecto, incrementar contador
+                batalla.setTurnosSinAtacarEquipo1(batalla.getTurnosSinAtacarEquipo1() + 1);
+                System.out.println("Equipo 1 usó efecto. Turnos sin atacar: " + batalla.getTurnosSinAtacarEquipo1());
+            } else {
+                // Equipo 1 atacó, resetear contador
+                batalla.setTurnosSinAtacarEquipo1(0);
+                System.out.println("Equipo 1 atacó. Contador de turnos sin atacar reseteado.");
+            }
+        } else {
+            // Es el turno del Equipo 2
+            if (batalla.isUsarEfectoE2()) {
+                // Equipo 2 usó efecto, incrementar contador
+                batalla.setTurnosSinAtacarEquipo2(batalla.getTurnosSinAtacarEquipo2() + 1);
+                System.out.println("Equipo 2 usó efecto. Turnos sin atacar: " + batalla.getTurnosSinAtacarEquipo2());
+            } else {
+                // Equipo 2 atacó, resetear contador
+                batalla.setTurnosSinAtacarEquipo2(0);
+                System.out.println("Equipo 2 atacó. Contador de turnos sin atacar reseteado.");
+            }
+        }
     }
 }

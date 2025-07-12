@@ -35,6 +35,10 @@ public class BatallaDTO {
     private boolean defensaReducidaEquipo1; // Indica si la defensa del equipo 1 fue reducida este turno
     private boolean defensaReducidaEquipo2; // Indica si la defensa del equipo 2 fue reducida este turno
 
+    // Campos para el factor de agresividad - turnos consecutivos sin atacar
+    private int turnosSinAtacarEquipo1; // Turnos consecutivos que el equipo 1 ha usado efectos en lugar de atacar
+    private int turnosSinAtacarEquipo2; // Turnos consecutivos que el equipo 2 ha usado efectos en lugar de atacar
+
     public List<Pokemon> getEntrenador1(){
         return entrenador1;
     }
@@ -174,5 +178,22 @@ public class BatallaDTO {
     
     public void setNombreEquipo2(String nombreEquipo2) {
         this.nombreEquipo2 = nombreEquipo2;
+    }
+    
+    // Getters y setters para turnos sin atacar
+    public int getTurnosSinAtacarEquipo1() {
+        return turnosSinAtacarEquipo1;
+    }
+    
+    public void setTurnosSinAtacarEquipo1(int turnosSinAtacarEquipo1) {
+        this.turnosSinAtacarEquipo1 = turnosSinAtacarEquipo1;
+    }
+    
+    public int getTurnosSinAtacarEquipo2() {
+        return turnosSinAtacarEquipo2;
+    }
+    
+    public void setTurnosSinAtacarEquipo2(int turnosSinAtacarEquipo2) {
+        this.turnosSinAtacarEquipo2 = turnosSinAtacarEquipo2;
     }
 }

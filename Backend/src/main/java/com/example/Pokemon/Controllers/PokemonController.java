@@ -85,10 +85,23 @@ public class PokemonController {
         try {
             Pokemon pokemon = pokemonService.getPokemonById(id);
             if (pokemon == null) {
+                System.err.println("Pokemon no encontrado con ID: " + id);
                 return ResponseEntity.notFound().build();
             }
             
+            System.out.println("=== ENDPOINT /pokemon/ataques/" + id + " ===");
+            System.out.println("Pokemon encontrado: " + pokemon.getNombre() + " (ID: " + pokemon.getId() + ")");
+            System.out.println("IdAtaque1: " + pokemon.getIdAtaque1());
+            System.out.println("IdAtaque2: " + pokemon.getIdAtaque2());
+            
             List<Ataque> ataques = pokemonService.getPokemonAtaques(pokemon);
+            
+            System.out.println("Ataques devueltos por el servicio:");
+            for (int i = 0; i < ataques.size(); i++) {
+                Ataque ataque = ataques.get(i);
+                System.out.println("  [" + i + "] ID: " + ataque.getId() + ", Nombre: " + ataque.getNombre() + ", Tipo: " + ataque.getTipoAtaque());
+            }
+            
             if(!ataques.isEmpty()) {
                 return ResponseEntity.ok(ataques);
             }
