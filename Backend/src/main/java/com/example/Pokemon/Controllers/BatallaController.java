@@ -2,6 +2,7 @@ package com.example.Pokemon.Controllers;
 
 import com.example.Pokemon.DTO.BatallaDTO;
 import com.example.Pokemon.Entities.Batalla;
+import com.example.Pokemon.Entities.Pokemon;
 import com.example.Pokemon.Services.BatallaService;
 import com.example.Pokemon.Services.EntrenadorService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,34 @@ public class BatallaController {
             return new ResponseEntity<>(batallaAleatoria, HttpStatus.CREATED);
         } catch (Exception e) {
             System.err.println("Error al crear batalla aleatoria con modo " + modo + ": " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+    
+    @PostMapping("/batalla-dificultad/{modo}/{difficulty}")
+    public ResponseEntity<BatallaDTO> crearBatallaConDificultad(@PathVariable String modo, @PathVariable String difficulty, @RequestBody(required = false) List<Pokemon> equipoHumano) {
+        try {
+            BatallaDTO batallaOptimizada = batallaService.crearBatallaAleatoriaConDificultad(modo, difficulty, equipoHumano);
+            return new ResponseEntity<>(batallaOptimizada, HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.err.println("Error al crear batalla con dificultad " + difficulty + ": " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+    
+    @PostMapping("/batalla-cpu-hard")
+    public ResponseEntity<BatallaDTO> crearBatallaCpuHard(@RequestBody List<Pokemon> equipoHumano) {
+        try {
+            System.out.println("=== CREANDO BATALLA CPU DIFÍCIL ===");
+            System.out.println("Equipo humano recibido: " + equipoHumano.size() + " Pokémon");
+            
+            BatallaDTO batallaHard = batallaService.crearBatallaAleatoriaConDificultad("TOTAL", "HARD", equipoHumano);
+            
+            System.out.println("Batalla CPU Hard creada exitosamente");
+            return new ResponseEntity<>(batallaHard, HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.err.println("Error al crear batalla CPU Hard: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }

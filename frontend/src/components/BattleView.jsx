@@ -14,7 +14,7 @@ const BattleView = () => {
   const navigate = useNavigate();
   const { mainTheme } = useAudioContext();
 
-  const { selectedTrainer1, selectedTrainer2, randomBattle, isRandomBattle, isCpuBattle, cpuDifficulty, cpuIsTeam1 } = location.state || {};
+  const { selectedTrainer1, selectedTrainer2, randomBattle, isRandomBattle, isCpuBattle, cpuDifficulty, cpuIsTeam1, batalla } = location.state || {};
 
   if (!isRandomBattle && !isCpuBattle && (!selectedTrainer1 || !selectedTrainer2)) {
     navigate("/setup");
@@ -24,15 +24,17 @@ const BattleView = () => {
     navigate("/setup");
   }
 
-  if (isCpuBattle && !selectedTrainer1) {
+  if (isCpuBattle && !selectedTrainer1 && !batalla) {
     navigate("/setup");
   }
 
   // Define team names based on battle type
-  const teamName1 = isRandomBattle ? randomBattle?.nombreEquipo1 : selectedTrainer1?.nombre;
+  const teamName1 = isRandomBattle 
+    ? randomBattle?.nombreEquipo1 
+    : (batalla ? batalla.nombreEquipo1 : selectedTrainer1?.nombre);
   const teamName2 = isRandomBattle 
     ? randomBattle?.nombreEquipo2 
-    : (isCpuBattle ? `CPU (${cpuDifficulty || 'NORMAL'})` : selectedTrainer2?.nombre);
+    : (batalla ? batalla.nombreEquipo2 : (isCpuBattle ? `CPU (${cpuDifficulty || 'NORMAL'})` : selectedTrainer2?.nombre));
 
   const [pokemonDataTrainer1, setPokemonDataTrainer1] = useState([]);
   const [pokemonDataTrainer2, setPokemonDataTrainer2] = useState([]);
@@ -243,6 +245,52 @@ const BattleView = () => {
             `¡La batalla aleatoria entre ${teamName1} y ${teamName2} ha comenzado!`,
             `${teamName1} inicia el combate.`
           ]);
+        } else if (batalla) {
+          // Initialize pre-created battle (like CPU Hard difficulty)
+          console.log("Inicializando batalla pre-creada:", batalla);
+          
+          const pokemonData1 = batalla.entrenador1;
+          const pokemonData2 = batalla.entrenador2;
+          
+          setPokemonDataTrainer1(pokemonData1);
+          setPokemonDataTrainer2(pokemonData2);
+          
+          const newLivesTrainer1 = pokemonData1.map((pokemon) => pokemon.vida);
+          const newLivesTrainer2 = pokemonData2.map((pokemon) => pokemon.vida);
+          setLivesTrainer1(newLivesTrainer1);
+          setLivesTrainer2(newLivesTrainer2);
+          setVidaMaxE1(newLivesTrainer1);
+          setVidaMaxE2(newLivesTrainer2);
+
+          // Load attacks for team 1
+          const attackResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer1(attackResponses1.map((response) => response.data));
+
+          // Load attacks for team 2
+          const attackResponses2 = await Promise.all(
+            pokemonData2.map((pokemon) => pokemonService.getAtaques(pokemon.id))
+          );
+          setAttacksTrainer2(attackResponses2.map((response) => response.data));
+
+          // Load effects for team 1
+          const effectResponses1 = await Promise.all(
+            pokemonData1.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer1(effectResponses1.map((response) => response.data));
+
+          // Load effects for team 2
+          const effectResponses2 = await Promise.all(
+            pokemonData2.map((pokemon) => pokemonService.getEfecto(pokemon.id))
+          );
+          setEffectsTrainer2(effectResponses2.map((response) => response.data));
+
+          setBattleLog([
+            `¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
+            cpuDifficulty === "HARD" ? `La CPU ha seleccionado un equipo optimizado contra ti` : `${teamName1} enfrenta a la CPU en dificultad ${cpuDifficulty}`,
+            `${teamName1} inicia el combate.`
+          ]);
         } else if (isCpuBattle) {
           // Initialize CPU battle - need to create a random team for CPU
           console.log("Inicializando batalla CPU...");
@@ -368,7 +416,18 @@ const BattleView = () => {
     };
 
     initializeBattle();
-  }, [selectedTrainer1, selectedTrainer2]);
+  }, [
+    location,
+    randomBattle,
+    batalla,
+    isCpuBattle,
+    isRandomBattle,
+    selectedTrainer1,
+    selectedTrainer2,
+    cpuDifficulty,
+    teamName1,
+    teamName2
+  ]);
 
   // useEffect para limpiar estados cuando hay un ganador
   useEffect(() => {

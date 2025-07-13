@@ -24,11 +24,21 @@ const createRandomBattleWithMode = (mode) => {
     return httpClient.post(`/batalla/batalla-aleatoria/${mode}`)
 }
 
+const createCpuHardBattle = (equipoHumano) => {
+    return httpClient.post('/batalla/batalla-cpu-hard', equipoHumano)
+}
+
+const createBattleWithDifficulty = (mode, difficulty, equipoHumano = null) => {
+    return httpClient.post(`/batalla/batalla-dificultad/${mode}/${difficulty}`, equipoHumano)
+}
+
 export default {
     getAll,
     getById,
     create,
     combatir,
     createRandomBattle,
-    createRandomBattleWithMode
+    createRandomBattleWithMode,
+    createCpuHardBattle,
+    createBattleWithDifficulty
 }

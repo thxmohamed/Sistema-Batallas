@@ -118,16 +118,47 @@ const BattleSetupView = () => {
     }
   };
 
-  const handleCpuBattle = () => {
+  const handleCpuBattle = async () => {
     if (selectedPlayerTrainer) {
-      navigate("/battle", {
-        state: { 
-          selectedTrainer1: selectedPlayerTrainer,
-          isCpuBattle: true,
-          cpuDifficulty: cpuDifficulty,
-          cpuIsTeam1: false // La CPU será siempre el entrenador 2
-        },
-      });
+      try {
+        if (cpuDifficulty === "HARD") {
+          console.log("=== INICIANDO BATALLA CPU DIFÍCIL ===");
+          console.log("Entrenador seleccionado:", selectedPlayerTrainer);
+          console.log("Pokémon del jugador:", selectedPlayerTrainer.pokemons);
+          
+          setIsCreatingRandomBattle(true);
+          
+          // Para dificultad HARD, crear una batalla con equipo CPU optimizado
+          const response = await batallaService.createCpuHardBattle(selectedPlayerTrainer.pokemons);
+          
+          console.log("Batalla CPU Hard creada:", response.data);
+          
+          // Navegar directamente a la batalla con los datos optimizados
+          navigate("/battle", {
+            state: { 
+              batalla: response.data,
+              isCpuBattle: true,
+              cpuDifficulty: cpuDifficulty,
+              cpuIsTeam1: false // La CPU será siempre el entrenador 2
+            },
+          });
+        } else {
+          // Para dificultades EASY y NORMAL, usar el flujo original
+          navigate("/battle", {
+            state: { 
+              selectedTrainer1: selectedPlayerTrainer,
+              isCpuBattle: true,
+              cpuDifficulty: cpuDifficulty,
+              cpuIsTeam1: false // La CPU será siempre el entrenador 2
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error al crear batalla CPU:", error);
+        setError("Error al crear la batalla CPU. Inténtalo de nuevo.");
+      } finally {
+        setIsCreatingRandomBattle(false);
+      }
     }
   };
 
@@ -805,10 +836,11 @@ const BattleSetupView = () => {
                     <h4 className="difficulty-name">Difícil</h4>
                   </div>
                   <p className="difficulty-description">
-                    La CPU analiza amenazas y toma decisiones estratégicas avanzadas.
+                    La CPU analiza tu equipo y selecciona Pokémon con ventaja estratégica contra ti.
                   </p>
                   <div className="difficulty-features">
                     <span className="feature-tag">🧠 IA inteligente</span>
+                    <span className="feature-tag">🎯 Equipo optimizado</span>
                     <span className="feature-tag">🔥 Desafiante</span>
                   </div>
                 </div>
@@ -819,16 +851,28 @@ const BattleSetupView = () => {
               <button
                 className="btn btn-primary btn-lg"
                 onClick={handleCpuBattle}
-                disabled={!selectedPlayerTrainer}
+                disabled={!selectedPlayerTrainer || isCreatingRandomBattle}
               >
-                <span className="btn-icon">🤖</span>
-                <span>¡Batalla vs CPU ({cpuDifficulty})!</span>
+                {isCreatingRandomBattle ? (
+                  <>
+                    <span className="btn-icon loading-spinner"></span>
+                    <span>Creando equipo CPU...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="btn-icon">🤖</span>
+                    <span>¡Batalla vs CPU ({cpuDifficulty})!</span>
+                  </>
+                )}
               </button>
               
               {selectedPlayerTrainer && (
                 <div className="cpu-battle-hint">
                   <small>
                     🎯 {selectedPlayerTrainer.nombre} vs CPU • Dificultad: <strong>{cpuDifficulty}</strong>
+                    {cpuDifficulty === "HARD" && (
+                      <span className="hard-mode-hint"> • La CPU seleccionará un equipo optimizado contra ti</span>
+                    )}
                   </small>
                 </div>
               )}

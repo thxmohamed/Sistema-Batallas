@@ -28,6 +28,9 @@ public class BatallaService {
     @Autowired
     EfectoService efectoService;
 
+    @Autowired
+    AtaqueService ataqueService;
+
     // Nombres aleatorios para equipos
     private static final String[] NOMBRES_EQUIPO_1 = {
         "Equipo Fuego", "Dragones Salvajes", "Campeones", "Titanes Guardianes", "Leyendas Ardientes", "Conquistadores"
@@ -388,6 +391,31 @@ public class BatallaService {
         
         return batalla;
     }
+    
+    /**
+     * Actualiza los contadores de turnos sin atacar basándose en si se usó efecto o ataque
+     */
+    private void updateTurnosSinAtacar(BatallaDTO batalla, boolean esEquipo1) {
+        boolean usoEfecto = esEquipo1 ? batalla.isUsarEfectoE1() : batalla.isUsarEfectoE2();
+        
+        if (esEquipo1) {
+            if (usoEfecto) {
+                // Incrementar contador de turnos sin atacar para equipo 1
+                batalla.setTurnosSinAtacarEquipo1(batalla.getTurnosSinAtacarEquipo1() + 1);
+            } else {
+                // Resetear contador si atacó
+                batalla.setTurnosSinAtacarEquipo1(0);
+            }
+        } else {
+            if (usoEfecto) {
+                // Incrementar contador de turnos sin atacar para equipo 2
+                batalla.setTurnosSinAtacarEquipo2(batalla.getTurnosSinAtacarEquipo2() + 1);
+            } else {
+                // Resetear contador si atacó
+                batalla.setTurnosSinAtacarEquipo2(0);
+            }
+        }
+    }
 
     /**
      * Selecciona 3 Pokémon aleatorios diferentes para formar un equipo
@@ -523,32 +551,259 @@ public class BatallaService {
     }
     
     /**
-     * Actualiza los contadores de turnos sin atacar para el factor de agresividad
-     * Solo actualiza el contador del equipo que está jugando en este turno
+     * Selecciona 3 Pokémon para CPU en dificultad difícil que tengan ventaja contra el equipo humano
      */
-    private void updateTurnosSinAtacar(BatallaDTO batalla, boolean esEquipo1) {
-        if (esEquipo1) {
-            // Es el turno del Equipo 1
-            if (batalla.isUsarEfectoE1()) {
-                // Equipo 1 usó efecto, incrementar contador
-                batalla.setTurnosSinAtacarEquipo1(batalla.getTurnosSinAtacarEquipo1() + 1);
-                System.out.println("Equipo 1 usó efecto. Turnos sin atacar: " + batalla.getTurnosSinAtacarEquipo1());
-            } else {
-                // Equipo 1 atacó, resetear contador
-                batalla.setTurnosSinAtacarEquipo1(0);
-                System.out.println("Equipo 1 atacó. Contador de turnos sin atacar reseteado.");
-            }
-        } else {
-            // Es el turno del Equipo 2
-            if (batalla.isUsarEfectoE2()) {
-                // Equipo 2 usó efecto, incrementar contador
-                batalla.setTurnosSinAtacarEquipo2(batalla.getTurnosSinAtacarEquipo2() + 1);
-                System.out.println("Equipo 2 usó efecto. Turnos sin atacar: " + batalla.getTurnosSinAtacarEquipo2());
-            } else {
-                // Equipo 2 atacó, resetear contador
-                batalla.setTurnosSinAtacarEquipo2(0);
-                System.out.println("Equipo 2 atacó. Contador de turnos sin atacar reseteado.");
+    public List<Pokemon> seleccionarEquipoAntiHumano(List<Pokemon> todosLosPokemon, List<Pokemon> equipoHumano) {
+        List<Pokemon> equipoOptimizado = new ArrayList<>();
+        List<Pokemon> pokemonDisponibles = new ArrayList<>(todosLosPokemon);
+        Collections.shuffle(pokemonDisponibles);
+        
+        System.out.println("=== SELECCIONANDO EQUIPO CPU DIFÍCIL CONTRA HUMANO ===");
+        System.out.println("Equipo humano:");
+        equipoHumano.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
+        
+        // Para cada posición del equipo, encontrar el mejor counter
+        for (int i = 0; i < 3; i++) {
+            Pokemon mejorCounter = encontrarMejorCounterPokemon(pokemonDisponibles, equipoHumano, equipoOptimizado);
+            if (mejorCounter != null) {
+                equipoOptimizado.add(crearCopiaPokemon(mejorCounter));
+                // Remover para evitar duplicados
+                pokemonDisponibles.removeIf(p -> p.getId().equals(mejorCounter.getId()));
+                System.out.println("Seleccionado " + mejorCounter.getNombre() + " como counter #" + (i+1));
             }
         }
+        
+        // Si no se pudieron encontrar 3 counters, completar con Pokémon aleatorios
+        while (equipoOptimizado.size() < 3) {
+            for (Pokemon pokemon : pokemonDisponibles) {
+                if (equipoOptimizado.size() >= 3) break;
+                
+                boolean yaEstaEnEquipo = equipoOptimizado.stream()
+                    .anyMatch(p -> p.getId().equals(pokemon.getId()));
+                
+                if (!yaEstaEnEquipo) {
+                    equipoOptimizado.add(crearCopiaPokemon(pokemon));
+                    System.out.println("Completando equipo con " + pokemon.getNombre());
+                    break;
+                }
+            }
+            // Prevenir bucle infinito
+            if (pokemonDisponibles.size() < 3) break;
+        }
+        
+        System.out.println("Equipo CPU optimizado:");
+        equipoOptimizado.forEach(p -> System.out.println("  - " + p.getNombre() + " (" + p.getTipoPokemon() + ")"));
+        
+        return equipoOptimizado;
+    }
+    
+    /**
+     * Encuentra el mejor Pokémon counter contra el equipo humano
+     */
+    private Pokemon encontrarMejorCounterPokemon(List<Pokemon> candidatos, List<Pokemon> equipoHumano, List<Pokemon> yaSeleccionados) {
+        Pokemon mejorCounter = null;
+        double mejorPuntuacion = 0.0;
+        
+        for (Pokemon candidato : candidatos) {
+            // Evitar duplicados
+            boolean yaEstaSeleccionado = yaSeleccionados.stream()
+                .anyMatch(p -> p.getId().equals(candidato.getId()));
+            if (yaEstaSeleccionado) continue;
+            
+            double puntuacion = evaluarCounterEffectiveness(candidato, equipoHumano);
+            if (puntuacion > mejorPuntuacion) {
+                mejorPuntuacion = puntuacion;
+                mejorCounter = candidato;
+            }
+        }
+        
+        return mejorCounter;
+    }
+    
+    /**
+     * Evalúa qué tan efectivo es un Pokémon como counter contra el equipo humano
+     */
+    private double evaluarCounterEffectiveness(Pokemon candidato, List<Pokemon> equipoHumano) {
+        double puntuacion = 0.0;
+        
+        try {
+            // Obtener ataques del candidato
+            Ataque attack1 = ataqueService.getAtaqueById(candidato.getIdAtaque1());
+            Ataque attack2 = ataqueService.getAtaqueById(candidato.getIdAtaque2());
+            
+            // Evaluar contra cada Pokémon del equipo humano
+            for (Pokemon humano : equipoHumano) {
+                // Puntos por efectividad de tipo en ataques
+                if (attack1 != null) {
+                    double efectividad1 = calcularEfectividadTipo(attack1.getTipoAtaque(), humano.getTipoPokemon());
+                    if (efectividad1 >= 2.0) {
+                        puntuacion += 100.0; // Super efectivo vale mucho
+                    } else if (efectividad1 > 1.0) {
+                        puntuacion += 25.0; // Efectivo normal
+                    }
+                }
+                
+                if (attack2 != null) {
+                    double efectividad2 = calcularEfectividadTipo(attack2.getTipoAtaque(), humano.getTipoPokemon());
+                    if (efectividad2 >= 2.0) {
+                        puntuacion += 100.0; // Super efectivo vale mucho
+                    } else if (efectividad2 > 1.0) {
+                        puntuacion += 25.0; // Efectivo normal
+                    }
+                }
+                
+                // Bonus por resistencia defensiva (el humano hace poco daño a este candidato)
+                try {
+                    Ataque humanoAttack1 = ataqueService.getAtaqueById(humano.getIdAtaque1());
+                    Ataque humanoAttack2 = ataqueService.getAtaqueById(humano.getIdAtaque2());
+                    
+                    if (humanoAttack1 != null) {
+                        double efectividadContra = calcularEfectividadTipo(humanoAttack1.getTipoAtaque(), candidato.getTipoPokemon());
+                        if (efectividadContra <= 0.5) {
+                            puntuacion += 50.0; // Resistente a ataques humanos
+                        }
+                    }
+                    
+                    if (humanoAttack2 != null) {
+                        double efectividadContra = calcularEfectividadTipo(humanoAttack2.getTipoAtaque(), candidato.getTipoPokemon());
+                        if (efectividadContra <= 0.5) {
+                            puntuacion += 50.0; // Resistente a ataques humanos
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignorar errores al obtener ataques humanos
+                }
+                
+                // Bonus adicional por stats superiores
+                if (candidato.getAtaque() > humano.getAtaque()) {
+                    puntuacion += 10.0;
+                }
+                if (candidato.getDefensa() > humano.getDefensa()) {
+                    puntuacion += 10.0;
+                }
+                if (candidato.getVida() > humano.getVida()) {
+                    puntuacion += 5.0;
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error evaluando counter effectiveness para " + candidato.getNombre() + ": " + e.getMessage());
+        }
+        
+        return puntuacion;
+    }
+    
+    /**
+     * Calcula la efectividad de un tipo de ataque contra un tipo de Pokémon
+     */
+    private double calcularEfectividadTipo(Ataque.TipoAtaque tipoAtaque, Pokemon.TipoPokemon tipoDefensor) {
+        String tipoAtaqueStr = String.valueOf(tipoAtaque);
+        String tipoDefensorStr = String.valueOf(tipoDefensor);
+        
+        return switch (tipoAtaqueStr) {
+            case "AGUA" -> {
+                if (tipoDefensorStr.equals("FUEGO")) yield 2.0;
+                else if (tipoDefensorStr.equals("ELECTRICO") || tipoDefensorStr.equals("AGUA")) yield 0.5;
+                else yield 1.0;
+            }
+            case "FUEGO" -> {
+                if (tipoDefensorStr.equals("PLANTA")) yield 2.0;
+                else if (tipoDefensorStr.equals("AGUA") || tipoDefensorStr.equals("FUEGO")) yield 0.5;
+                else yield 1.0;
+            }
+            case "PLANTA" -> {
+                if (tipoDefensorStr.equals("TIERRA")) yield 2.0;
+                else if (tipoDefensorStr.equals("FUEGO") || tipoDefensorStr.equals("PLANTA")) yield 0.5;
+                else yield 1.0;
+            }
+            case "TIERRA" -> {
+                if (tipoDefensorStr.equals("ELECTRICO")) yield 2.0;
+                else if (tipoDefensorStr.equals("PLANTA") || tipoDefensorStr.equals("TIERRA")) yield 0.5;
+                else yield 1.0;
+            }
+            case "ELECTRICO" -> {
+                if (tipoDefensorStr.equals("AGUA")) yield 2.0;
+                else if (tipoDefensorStr.equals("TIERRA") || tipoDefensorStr.equals("ELECTRICO")) yield 0.5;
+                else yield 1.0;
+            }
+            case "NORMAL" -> 1.0;
+            default -> 1.0;
+        };
+    }
+
+    /**
+     * Crea una batalla permitiendo especificar dificultad y equipo humano para optimizar CPU
+     */
+    public BatallaDTO crearBatallaAleatoriaConDificultad(String modo, String difficulty, List<Pokemon> equipoHumano) {
+        // Obtener todos los Pokémon disponibles
+        List<Pokemon> todosLosPokemon = pokemonService.getAllPokemon();
+        
+        if (todosLosPokemon.size() < 3) {
+            throw new RuntimeException("Se necesitan al menos 3 Pokémon en la base de datos para crear una batalla aleatoria");
+        }
+        
+        // Crear copias de los Pokémon para la batalla (para no modificar los originales)
+        List<Pokemon> equipo1, equipo2;
+        
+        // Si hay equipoHumano y dificultad es HARD, optimizar el equipo CPU
+        if (equipoHumano != null && "HARD".equalsIgnoreCase(difficulty)) {
+            System.out.println("=== CREANDO BATALLA DIFÍCIL CON EQUIPO OPTIMIZADO ===");
+            equipo1 = equipoHumano; // El humano ya tiene su equipo
+            equipo2 = seleccionarEquipoAntiHumano(todosLosPokemon, equipoHumano); // CPU optimizado
+        } else {
+            // Usar selección normal basándose en el modo
+            switch (modo.toUpperCase()) {
+                case "BALANCEADO":
+                    equipo1 = seleccionarEquipoBalanceado(todosLosPokemon);
+                    equipo2 = seleccionarEquipoBalanceado(todosLosPokemon);
+                    break;
+                case "EFECTOS":
+                    equipo1 = seleccionarEquipoEfectosBalanceados(todosLosPokemon);
+                    equipo2 = seleccionarEquipoEfectosBalanceados(todosLosPokemon);
+                    break;
+                case "TOTAL":
+                default:
+                    equipo1 = seleccionarEquipoAleatorio(todosLosPokemon);
+                    equipo2 = seleccionarEquipoAleatorio(todosLosPokemon);
+                    break;
+            }
+        }
+        
+        // Crear BatallaDTO
+        BatallaDTO batallaOptimizada = new BatallaDTO();
+        
+        // Configurar equipos
+        batallaOptimizada.setEntrenador1(equipo1);
+        batallaOptimizada.setEntrenador2(equipo2);
+        
+        // Nombres específicos para batalla difícil
+        if ("HARD".equalsIgnoreCase(difficulty)) {
+            batallaOptimizada.setNombreEquipo1("Retador");
+            batallaOptimizada.setNombreEquipo2("Elite CPU");
+        } else {
+            batallaOptimizada.setNombreEquipo1(NOMBRES_EQUIPO_1[(int)(Math.random() * NOMBRES_EQUIPO_1.length)]);
+            batallaOptimizada.setNombreEquipo2(NOMBRES_EQUIPO_2[(int)(Math.random() * NOMBRES_EQUIPO_2.length)]);
+        }
+        
+        // Configuración inicial
+        batallaOptimizada.setTurno(1);
+        batallaOptimizada.setUsarEfectoE1(false);
+        batallaOptimizada.setUsarEfectoE2(false);
+        
+        // Configurar flags iniciales
+        batallaOptimizada.setAtaqueReducidoEquipo1(false);
+        batallaOptimizada.setAtaqueReducidoEquipo2(false);
+        batallaOptimizada.setDefensaReducidaEquipo1(false);
+        batallaOptimizada.setDefensaReducidaEquipo2(false);
+        
+        // Configurar efectos continuos iniciales
+        batallaOptimizada.setEfectoContinuoEquipo1(null);
+        batallaOptimizada.setEfectoContinuoEquipo2(null);
+        
+        // Contadores de turnos sin atacar para factor de agresividad
+        batallaOptimizada.setTurnosSinAtacarEquipo1(0);
+        batallaOptimizada.setTurnosSinAtacarEquipo2(0);
+        
+        return batallaOptimizada;
     }
 }
