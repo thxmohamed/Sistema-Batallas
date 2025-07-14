@@ -4180,3 +4180,86 @@ button.selected {
   padding-left: 20px;
   margin-top: 10px;
 }
+
+/* =============================================
+   CPU AUTO-EXECUTE STYLES
+   ============================================= */
+
+/* Botón con auto-ejecución de CPU */
+.btn.cpu-auto-execute {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.auto-execute-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  transition: width 1s ease;
+  border-radius: 0 2px 0 0;
+}
+
+/* Indicador de CPU pensando */
+.cpu-thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  margin-top: 8px;
+}
+
+.thinking-animation {
+  display: flex;
+  gap: 2px;
+}
+
+.thinking-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: thinking-pulse 1.5s infinite;
+}
+
+.thinking-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes thinking-pulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.thinking-text {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+/* Actualizar el turn-indicator-badge para CPU */
+.trainer-battlefield .turn-indicator-badge {
+  transition: all 0.3s ease;
+}

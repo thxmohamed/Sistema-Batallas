@@ -66,6 +66,11 @@ const BattleView = () => {
   const [battleLog, setBattleLog] = useState([]);
   const [winner, setWinner] = useState(null);
   const [cpuTurnProcessing, setCpuTurnProcessing] = useState(false);
+  
+  // Estados para auto-ejecución de la CPU
+  const [cpuAutoExecuteTimer, setCpuAutoExecuteTimer] = useState(null);
+  const [cpuAutoExecuteCountdown, setCpuAutoExecuteCountdown] = useState(0);
+  const timerActiveRef = useRef(false);
 
   // Estados para efectos de equipo (DANO_CONTINUO)
   const [teamEffects, setTeamEffects] = useState({
@@ -435,8 +440,80 @@ const BattleView = () => {
       console.log("🏆 Ganador detectado - limpiando estados de CPU");
       setCpuTurnProcessing(false);
       setBattleInProgress(false);
+      // Limpiar timer de auto-ejecución si existe
+      if (cpuAutoExecuteTimer) {
+        clearTimeout(cpuAutoExecuteTimer);
+        setCpuAutoExecuteTimer(null);
+        setCpuAutoExecuteCountdown(0);
+      }
+      timerActiveRef.current = false;
     }
-  }, [winner]);
+  }, [winner, cpuAutoExecuteTimer]);
+
+  // useEffect para auto-ejecutar cuando la CPU termine de decidir
+  useEffect(() => {
+    // Solo para batallas contra CPU, cuando es turno de la CPU y la CPU ha terminado de procesar
+    if (isCpuBattle && !isTeam1Turn && !cpuTurnProcessing && !battleInProgress && !winner) {
+      // Verificar si la CPU ya seleccionó todo lo necesario
+      const cpuHasValidSelection = selectedAttackerE2 !== null && 
+        (useEffectE2 || (selectedTargetE2 !== null && selectedAttackE2 !== null)) &&
+        livesTrainer2[selectedAttackerE2] > 0;
+      
+      console.log("🤖 Auto-execute useEffect triggered:", {
+        isCpuBattle,
+        isTeam1Turn,
+        cpuTurnProcessing,
+        battleInProgress,
+        winner,
+        cpuHasValidSelection,
+        selectedAttackerE2,
+        selectedTargetE2,
+        selectedAttackE2,
+        useEffectE2,
+        livesTrainer2: livesTrainer2?.[selectedAttackerE2],
+        timerActive: timerActiveRef.current
+      });
+      
+      // Solo iniciar si no hay timer activo y hay selección válida
+      if (cpuHasValidSelection && !timerActiveRef.current) {
+        console.log("🤖 CPU ha terminado de decidir, iniciando countdown de auto-ejecución");
+        
+        timerActiveRef.current = true;
+        setCpuAutoExecuteCountdown(5);
+        
+        // Countdown visual
+        let currentCount = 5;
+        const countdownInterval = setInterval(() => {
+          currentCount--;
+          console.log("⏰ Countdown:", currentCount);
+          setCpuAutoExecuteCountdown(currentCount);
+          
+          if (currentCount <= 0) {
+            clearInterval(countdownInterval);
+          }
+        }, 1000);
+
+        // Timer para auto-ejecutar después de 5 segundos
+        const timer = setTimeout(() => {
+          console.log("⏰ Auto-ejecutando acción de la CPU");
+          clearInterval(countdownInterval);
+          timerActiveRef.current = false;
+          setCpuAutoExecuteCountdown(0);
+          setCpuAutoExecuteTimer(null);
+          
+          // Auto-ejecutar si aún se puede
+          if (!battleInProgress && !winner) {
+            console.log("✅ Ejecutando auto-combate");
+            executeCombat('CPU_AUTO');
+          } else {
+            console.log("❌ No se puede ejecutar auto-combate:", { battleInProgress, winner });
+          }
+        }, 5000);
+
+        setCpuAutoExecuteTimer(timer);
+      }
+    }
+  }, [isCpuBattle, isTeam1Turn, cpuTurnProcessing, battleInProgress, winner, selectedAttackerE2, selectedTargetE2, useEffectE2, selectedAttackE2, livesTrainer2]);
 
   // Función para manejar el turno de la CPU (llamada directamente, no en useEffect)
   const handleCpuTurnAction = async (forceTurn = null, updatedPokemonData1 = null, updatedPokemonData2 = null) => {
@@ -524,50 +601,18 @@ const BattleView = () => {
       // Añadir mensaje al log sobre la acción de la CPU
       setBattleLog(prev => [...prev, `🤖 CPU ${cpuAction.reasoning}`]);
 
-      // Ejecutar inmediatamente después de configurar
-      setTimeout(async () => {
-        try {
-          console.log("🎯 CPU: Ejecutando combate inmediatamente");
-          console.log("🎯 CPU: Estados antes de ejecutar:", {
-            winner,
-            cpuTurnProcessing,
-            battleInProgress,
-            canExecuteAction: canExecuteAction(),
-            selectedAttackerE2,
-            selectedTargetE2,
-            useEffectE2,
-            selectedAttackE2
-          });
-          
-          // Verificación: debe estar procesando turno CPU y no haber ganador
-          if (!winner && cpuTurnProcessing) {
-            console.log("✅ CPU: Condiciones válidas, ejecutando combate...");
-            await executeCombat('CPU');
-          } else {
-            console.log("🤖 CPU: Combate cancelado - estado inválido", {
-              battleInProgress,
-              winner,
-              cpuTurnProcessing
-            });
-          }
-        } catch (error) {
-          console.error("❌ CPU: Error ejecutando combate:", error);
-        } finally {
-          // Limpiar estados de CPU DESPUÉS de ejecutar el combate
-          console.log("🤖 CPU: Finalizando turno en setTimeout finally");
-          setCpuTurnProcessing(false);
-          setBattleInProgress(false);
-        }
-      }, 1000);
+      console.log("🤖 CPU: Decisión completada, permitiendo auto-ejecución por useEffect");
 
     } catch (error) {
       console.error("❌ CPU: Error general:", error);
       setBattleLog(prev => [...prev, `❌ Error en turno de CPU: ${error.message}`]);
-      // Solo limpiar en caso de error antes del setTimeout
+      setCpuTurnProcessing(false);
+      setBattleInProgress(false);
+    } finally {
+      // Limpiar solo el estado de procesamiento para permitir auto-ejecución
       setCpuTurnProcessing(false);
       setBattleInProgress(false);
     }
-    // Remover el finally aquí para que no se ejecute inmediatamente
   };
 
   const handlePokemonAction = (trainerTeam, pokemonIndex, useEffect) => {
@@ -908,6 +953,14 @@ const BattleView = () => {
       setUseEffectE1(false);
       setUseEffectE2(false);
 
+      // Limpiar timer de auto-ejecución si existe
+      if (cpuAutoExecuteTimer) {
+        clearTimeout(cpuAutoExecuteTimer);
+        setCpuAutoExecuteTimer(null);
+      }
+      setCpuAutoExecuteCountdown(0);
+      timerActiveRef.current = false;
+
     } catch (error) {
       console.error("Error durante la batalla:", error);
       setBattleLog(prev => [...prev, "Error durante la batalla"]);
@@ -1222,7 +1275,18 @@ const BattleView = () => {
             {!isTeam1Turn && (
               <div className="turn-indicator-badge">
                 <span className="badge-icon">⚡</span>
-                Tu turno
+                {cpuTurnProcessing ? 'CPU decidiendo...' : 'Tu turno'}
+              </div>
+            )}
+            {/* Indicador cuando CPU está decidiendo */}
+            {!isTeam1Turn && cpuTurnProcessing && (
+              <div className="cpu-thinking-indicator">
+                <div className="thinking-animation">
+                  <span className="thinking-dot">.</span>
+                  <span className="thinking-dot">.</span>
+                  <span className="thinking-dot">.</span>
+                </div>
+                <span className="thinking-text">🤖 Analizando...</span>
               </div>
             )}
             {/* Indicador de efecto continuo para equipo 2 */}
@@ -1378,11 +1442,18 @@ const BattleView = () => {
       {/* Action Button */}
       <div className="battle-actions">
         <button
-          className={`btn btn-primary btn-lg ${!canExecuteAction() || battleInProgress ? 'btn-disabled' : ''}`}
+          className={`btn btn-primary btn-lg ${!canExecuteAction() || battleInProgress ? 'btn-disabled' : ''} ${cpuAutoExecuteCountdown > 0 ? 'cpu-auto-execute' : ''}`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             if (!battleInProgress && canExecuteAction()) {
+              // Si hay auto-ejecución en proceso, cancelarla y ejecutar inmediatamente
+              if (cpuAutoExecuteTimer) {
+                clearTimeout(cpuAutoExecuteTimer);
+                setCpuAutoExecuteTimer(null);
+                setCpuAutoExecuteCountdown(0);
+              }
+              timerActiveRef.current = false;
               executeCombat('BUTTON');
             }
           }}
@@ -1392,6 +1463,14 @@ const BattleView = () => {
             <>
               <div className="btn-spinner"></div>
               Ejecutando...
+            </>
+          ) : cpuAutoExecuteCountdown > 0 ? (
+            <>
+              <span className="btn-icon">🤖</span>
+              CPU ejecutará en {cpuAutoExecuteCountdown}s
+              <div className="auto-execute-progress" style={{
+                width: `${((5 - cpuAutoExecuteCountdown) / 5) * 100}%`
+              }}></div>
             </>
           ) : (
             <>
