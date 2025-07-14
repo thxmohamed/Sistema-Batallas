@@ -836,7 +836,7 @@ const BattleSetupView = () => {
                     <h4 className="difficulty-name">Difícil</h4>
                   </div>
                   <p className="difficulty-description">
-                    La CPU analiza tu equipo y selecciona Pokémon con ventaja estratégica contra ti.
+                    La CPU toma decisiones inteligentes y optimizadas. Un verdadero desafío.
                   </p>
                   <div className="difficulty-features">
                     <span className="feature-tag">🧠 IA inteligente</span>
@@ -870,9 +870,7 @@ const BattleSetupView = () => {
                 <div className="cpu-battle-hint">
                   <small>
                     🎯 {selectedPlayerTrainer.nombre} vs CPU • Dificultad: <strong>{cpuDifficulty}</strong>
-                    {cpuDifficulty === "HARD" && (
-                      <span className="hard-mode-hint"> • La CPU seleccionará un equipo optimizado contra ti</span>
-                    )}
+                    {cpuDifficulty === "HARD"}
                   </small>
                 </div>
               )}
