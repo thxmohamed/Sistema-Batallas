@@ -728,17 +728,24 @@ public class CpuPlayerService {
             return mateScore; // Prioridad absoluta sobre cualquier otra consideración
         }
         
-        // 3. Diferencia de vida total
+        // 3. NUEVA EVALUACIÓN DE SUPERVIVENCIA - Evaluar si la CPU está en peligro inmediato
+        double survivalScore = evaluateSurvivalThreat(state);
+        if (Math.abs(survivalScore) > 1000.0) {
+            // Si hay una amenaza crítica de supervivencia, priorizar esto sobre todo lo demás
+            return survivalScore;
+        }
+
+        // 4. Diferencia de vida total
         long cpuTotalHP = state.cpuTeam.stream().mapToLong(Pokemon::getVida).sum();
         long enemyTotalHP = state.enemyTeam.stream().mapToLong(Pokemon::getVida).sum();
         score += (cpuTotalHP - enemyTotalHP) * 3.0;
         
-        // 4. Número de Pokemon vivos (factor crítico)
+        // 5. Número de Pokemon vivos (factor crítico)
         long cpuAlive = state.cpuTeam.stream().filter(p -> p.getVida() > 0).count();
         long enemyAlive = state.enemyTeam.stream().filter(p -> p.getVida() > 0).count();
         score += (cpuAlive - enemyAlive) * 500.0;
         
-        // 5. Bonificación por Pokemon enemigos con poca vida (oportunidad de KO)
+        // 6. Bonificación por Pokemon enemigos con poca vida (oportunidad de KO)
         for (Pokemon enemy : state.enemyTeam) {
             if (enemy.getVida() > 0) {
                 // Usar vida actual como base si vidaBase es null
@@ -750,38 +757,155 @@ public class CpuPlayerService {
             }
         }
         
-        // 6. Pokemon con ventaja de stats (buffs/debuffs) - PESO REDUCIDO
-        for (Pokemon p : state.cpuTeam) {
-            if (p.getVida() > 0) {
-                // Bonificar stats mejoradas pero con menos peso
-                if (p.getAtaqueModificado() != null && p.getAtaqueModificado() > p.getAtaque()) {
-                    score += 50.0; // Reducido de 100.0
+        // 7. Pokemon con ventaja de stats (buffs/debuffs) - PESO REDUCIDO
+        for (Pokemon cpuPokemon : state.cpuTeam) {
+            if (cpuPokemon.getVida() <= 0) continue;
+
+            try {
+                Efecto effect = efectoRepository.findById(cpuPokemon.getIdEfecto()).orElse(null);
+                if (effect != null) {
+                    switch (effect.getTipoEfecto()) {
+                        case SUBIR_ATAQUE_PROPIO -> {
+                            // Si tiene buff de ataque, es más valioso
+                            score += 300.0;
+                        }
+                        case SUBIR_DEFENSA_PROPIO -> {
+                            // Si tiene buff de defensa, es más valioso defensivamente
+                            score += 250.0;
+                        }
+                        case SUBIR_VELOCIDAD_PROPIO -> {
+                            // Si tiene buff de velocidad, es más valioso
+                            score += 200.0;
+                        }
+                    }
                 }
-                if (p.getDefensaModificada() != null && p.getDefensaModificada() > p.getDefensa()) {
-                    score += 40.0; // Reducido de 80.0
-                }
+            } catch (Exception e) {
+                // Ignorar errores
             }
         }
         
-        for (Pokemon p : state.enemyTeam) {
-            if (p.getVida() > 0) {
-                // Penalizar si enemigo tiene ventajas
-                if (p.getAtaqueModificado() != null && p.getAtaqueModificado() > p.getAtaque()) {
-                    score -= 60.0; // Ligeramente reducido
+        // 8. Potencial de daño futuro
+        for (Pokemon enemy : state.enemyTeam) {
+            if (enemy.getVida() <= 0) continue;
+
+            try {
+                Efecto effect = efectoRepository.findById(enemy.getIdEfecto()).orElse(null);
+                if (effect != null) {
+                    switch (effect.getTipoEfecto()) {
+                        case BAJAR_ATAQUE_RIVAL -> {
+                            // Enemigo con ataque reducido es favorable
+                            score += 400.0;
+                        }
+                        case BAJAR_DEFENSA_RIVAL -> {
+                            // Enemigo con defensa reducida es favorable
+                            score += 350.0;
+                        }
+                        case DANO_CONTINUO -> {
+                            // Enemigo envenenado es muy favorable
+                            score += 500.0;
+                        }
+                    }
                 }
-                if (p.getDefensaModificada() != null && p.getDefensaModificada() > p.getDefensa()) {
-                    score -= 50.0; // Ligeramente reducido
-                }
+            } catch (Exception e) {
+                // Ignorar errores
             }
         }
-        
-        // 7. Potencial de daño futuro
-        score += calculateDamagePotential(state.cpuTeam, state.enemyTeam) * 2.0;
-        score -= calculateDamagePotential(state.enemyTeam, state.cpuTeam) * 2.0;
-        
+        // 9. Agregar puntuación de supervivencia como factor secundario
+        score += survivalScore;
+
         return score;
     }
     
+    /**
+     * Nueva función para evaluar amenazas críticas de supervivencia
+     */
+    private double evaluateSurvivalThreat(GameState state) {
+        double survivalScore = 0.0;
+
+        // Evaluar si algún Pokemon de la CPU está en peligro crítico
+        for (Pokemon cpuPokemon : state.cpuTeam) {
+            if (cpuPokemon.getVida() <= 0) continue;
+
+            Long vidaMaxima = cpuPokemon.getVidaBase() != null ? cpuPokemon.getVidaBase() : cpuPokemon.getVida();
+            double healthPercent = (double) cpuPokemon.getVida() / (double) vidaMaxima;
+
+            // Verificar si el enemigo puede eliminar este Pokemon en el próximo turno
+            boolean canBeKilledNextTurn = false;
+            double maxEnemyDamage = 0.0;
+
+            for (Pokemon enemy : state.enemyTeam) {
+                if (enemy.getVida() <= 0) continue;
+
+                try {
+                    // Verificar ambos ataques del enemigo
+                    Ataque enemyAttack1 = ataqueRepository.findById(enemy.getIdAtaque1()).orElse(null);
+                    Ataque enemyAttack2 = ataqueRepository.findById(enemy.getIdAtaque2()).orElse(null);
+
+                    if (enemyAttack1 != null) {
+                        double damage = calculateDamage(enemy, cpuPokemon, enemyAttack1);
+                        maxEnemyDamage = Math.max(maxEnemyDamage, damage);
+                        if (damage >= cpuPokemon.getVida()) {
+                            canBeKilledNextTurn = true;
+                        }
+                    }
+
+                    if (enemyAttack2 != null) {
+                        double damage = calculateDamage(enemy, cpuPokemon, enemyAttack2);
+                        maxEnemyDamage = Math.max(maxEnemyDamage, damage);
+                        if (damage >= cpuPokemon.getVida()) {
+                            canBeKilledNextTurn = true;
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignorar errores en la evaluación
+                }
+            }
+
+            // CRITERIO CRÍTICO MEJORADO: Si puede ser eliminado en el próximo turno
+            if (canBeKilledNextTurn) {
+                try {
+                    Efecto healEffect = efectoRepository.findById(cpuPokemon.getIdEfecto()).orElse(null);
+                    if (healEffect != null && healEffect.getTipoEfecto() == Efecto.tipoEfecto.SUBIR_VIDA) {
+                        long healAmount = (long) (vidaMaxima * healEffect.getMultiplicador());
+                        long healedHP = Math.min(vidaMaxima, cpuPokemon.getVida() + healAmount);
+
+                        // Si la curación puede evitar la muerte, dar PRIORIDAD MÁXIMA
+                        if (healedHP > maxEnemyDamage) {
+                            survivalScore += 10000.0; // AUMENTADO DRASTICAMENTE - Mayor que cualquier ataque
+                            System.out.println("CRÍTICO: " + cpuPokemon.getNombre() + " puede sobrevivir curándose (+" + healAmount + " HP vs " + (int)maxEnemyDamage + " daño enemigo)");
+                        } else {
+                            // Si la curación no es suficiente, aún es mejor que morir
+                            survivalScore += 5000.0; // Aumentado significativamente
+                            System.out.println("PRECAUCIÓN: " + cpuPokemon.getNombre() + " curación insuficiente pero necesaria");
+                        }
+                    } else {
+                        // No tiene curación disponible y está en peligro crítico
+                        survivalScore -= 6000.0; // Penalizar más fuertemente
+                        System.out.println("DESESPERADO: " + cpuPokemon.getNombre() + " en peligro sin curación disponible");
+                    }
+                } catch (Exception e) {
+                    survivalScore -= 5000.0; // Penalizar por incertidumbre
+                }
+            }
+            // CRITERIO SECUNDARIO MEJORADO: Pokemon con vida muy baja (menos del 40%)
+            else if (healthPercent < 0.4) {
+                try {
+                    Efecto healEffect = efectoRepository.findById(cpuPokemon.getIdEfecto()).orElse(null);
+                    if (healEffect != null && healEffect.getTipoEfecto() == Efecto.tipoEfecto.SUBIR_VIDA) {
+                        // Bonificar más agresivamente la curación preventiva
+                        double preventiveScore = (0.4 - healthPercent) * 8000.0; // Escala basada en qué tan baja está la vida
+                        survivalScore += preventiveScore;
+                        System.out.println("PREVENTIVO: " + cpuPokemon.getNombre() + " considera curación preventiva (+" + String.format("%.1f", preventiveScore) + " puntos)");
+                    }
+                } catch (Exception e) {
+                    // Ignorar errores
+                }
+            }
+        }
+
+        return survivalScore;
+    }
+
     /**
      * Evalúa si existe una situación de "mate en 1" (victoria asegurada en el próximo turno)
      */
@@ -981,14 +1105,44 @@ public class CpuPlayerService {
             }
             
             // Generar uso de efecto
-            // Para efectos ofensivos: contra enemigos vivos
-            // Para efectos defensivos: contra aliados (si es CPU) o contra sí mismo
             if (isCpuTurn) {
                 // CPU puede usar efectos contra enemigos o aliados dependiendo del tipo
-                for (int targetIdx = 0; targetIdx < targetTeam.size(); targetIdx++) {
-                    if (targetTeam.get(targetIdx).getVida() > 0) {
-                        actions.add(new GameAction(attackerIdx, targetIdx, true, 0, 
-                            String.format("%s usa efecto en %s", attacker.getNombre(), targetTeam.get(targetIdx).getNombre())));
+                try {
+                    Efecto effect = efectoRepository.findById(attacker.getIdEfecto()).orElse(null);
+                    if (effect != null) {
+                        switch (effect.getTipoEfecto()) {
+                            case SUBIR_VIDA -> {
+                                // Efecto de curación: solo se aplica al usuario que lo ejecuta
+                                Long vidaMaxima = attacker.getVidaBase() != null ? attacker.getVidaBase() : attacker.getVida();
+                                double healthPercent = (double) attacker.getVida() / (double) vidaMaxima;
+
+                                String priority = healthPercent < 0.7 ? " (PRIORITARIO)" : "";
+                                actions.add(new GameAction(attackerIdx, attackerIdx, true, 0,
+                                    String.format("%s se cura%s", attacker.getNombre(), priority)));
+                            }
+                            case SUBIR_ATAQUE_PROPIO, SUBIR_DEFENSA_PROPIO, SUBIR_VELOCIDAD_PROPIO -> {
+                                // Efectos de buff propio: solo se aplican al usuario que los ejecuta
+                                actions.add(new GameAction(attackerIdx, attackerIdx, true, 0,
+                                    String.format("%s usa buff en sí mismo", attacker.getNombre())));
+                            }
+                            default -> {
+                                // Efectos que afectan al equipo rival: contra todos los enemigos vivos
+                                for (int targetIdx = 0; targetIdx < targetTeam.size(); targetIdx++) {
+                                    if (targetTeam.get(targetIdx).getVida() > 0) {
+                                        actions.add(new GameAction(attackerIdx, targetIdx, true, 0,
+                                            String.format("%s usa efecto en %s", attacker.getNombre(), targetTeam.get(targetIdx).getNombre())));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fallback: generar efectos básicos contra enemigos
+                    for (int targetIdx = 0; targetIdx < targetTeam.size(); targetIdx++) {
+                        if (targetTeam.get(targetIdx).getVida() > 0) {
+                            actions.add(new GameAction(attackerIdx, targetIdx, true, 0,
+                                String.format("%s usa efecto en %s", attacker.getNombre(), targetTeam.get(targetIdx).getNombre())));
+                        }
                     }
                 }
             } else {
@@ -1033,16 +1187,372 @@ public class CpuPlayerService {
      */
     private double quickEvaluateAction(GameAction action, GameState state) {
         double score = 0.0;
-        
+
         List<Pokemon> attackerTeam = state.cpuTurn ? state.cpuTeam : state.enemyTeam;
         List<Pokemon> targetTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
-        
+
         Pokemon attacker = attackerTeam.get(action.attackerIndex);
         Pokemon target = targetTeam.get(action.targetIndex);
-        
+
         if (action.isEffect) {
-            // Los efectos tienen puntuación base
-            score = 50.0;
+            // Evaluar efectos más específicamente
+            try {
+                Efecto effect = efectoRepository.findById(attacker.getIdEfecto()).orElse(null);
+                if (effect != null && effect.getTipoEfecto() == Efecto.tipoEfecto.SUBIR_VIDA) {
+                    // Es una curación - evaluar si es crítica
+                    Long vidaMaxima = target.getVidaBase() != null ? target.getVidaBase() : target.getVida();
+                    double healthPercent = (double) target.getVida() / (double) vidaMaxima;
+
+                    // Evaluar si el Pokemon puede ser eliminado en el próximo turno
+                    boolean canBeKilledNextTurn = false;
+                    double maxEnemyDamage = 0.0;
+
+                    List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
+                    for (Pokemon enemy : enemyTeam) {
+                        if (enemy.getVida() <= 0) continue;
+                        try {
+                            Ataque enemyAttack1 = ataqueRepository.findById(enemy.getIdAtaque1()).orElse(null);
+                            Ataque enemyAttack2 = ataqueRepository.findById(enemy.getIdAtaque2()).orElse(null);
+
+                            if (enemyAttack1 != null) {
+                                double damage = calculateDamage(enemy, target, enemyAttack1);
+                                maxEnemyDamage = Math.max(maxEnemyDamage, damage);
+                                if (damage >= target.getVida()) {
+                                    canBeKilledNextTurn = true;
+                                }
+                            }
+                            if (enemyAttack2 != null) {
+                                double damage = calculateDamage(enemy, target, enemyAttack2);
+                                maxEnemyDamage = Math.max(maxEnemyDamage, damage);
+                                if (damage >= target.getVida()) {
+                                    canBeKilledNextTurn = true;
+                                }
+                            }
+                        } catch (Exception e) {
+                            // Ignorar errores
+                        }
+                    }
+
+                    if (canBeKilledNextTurn) {
+                        // Curación crítica - PRIORIDAD MÁXIMA
+                        score = 12000.0;
+                        System.out.println("EVALUACIÓN RÁPIDA: Curación crítica para " + target.getNombre() + " - PRIORIDAD MÁXIMA");
+                    } else if (healthPercent < 0.3) {
+                        // Curación muy importante
+                        score = 6000.0;
+                    } else if (healthPercent < 0.5) {
+                        // Curación importante
+                        score = 3000.0;
+                    } else if (healthPercent < 0.7) {
+                        // Curación preventiva
+                        score = 1000.0;
+                    } else {
+                        // Curación innecesaria
+                        score = 100.0;
+                    }
+                } else {
+                    // Evaluar otros tipos de efectos específicamente
+                    switch (effect.getTipoEfecto()) {
+                        case SUBIR_ATAQUE_PROPIO -> {
+                            // Danza Espada - muy valioso al inicio del combate o cuando se puede sobrevivir
+                            Long vidaMaxima = attacker.getVidaBase() != null ? attacker.getVidaBase() : attacker.getVida();
+                            double healthPercent = (double) attacker.getVida() / (double) vidaMaxima;
+
+                            // NUEVO: Evaluar cuánto se ha buffeado usando ataqueModificado
+                            Long ataqueBase = attacker.getAtaqueBase() != null ? attacker.getAtaqueBase() : attacker.getAtaque();
+                            Long ataqueActual = attacker.getAtaqueModificado() != null ? attacker.getAtaqueModificado() : attacker.getAtaque();
+                            double ataqueMultiplier = (double) ataqueActual / ataqueBase;
+
+                            double baseScore = 0;
+                            if (healthPercent > 0.6) {
+                                baseScore = 2500.0;
+                            } else if (healthPercent > 0.4) {
+                                baseScore = 1500.0;
+                            } else {
+                                baseScore = 500.0;
+                            }
+
+                            // Aplicar penalización basada en cuánto se ha buffeado
+                            if (ataqueMultiplier <= 1.0) {
+                                // No se ha buffeado, valor completo
+                                score = baseScore;
+                                System.out.println("ESTRATÉGICO: " + attacker.getNombre() + " considera Danza Espada (primera vez, ataque: " + ataqueActual + ")");
+                            } else if (ataqueMultiplier <= 2) {
+                                // Se buffeó una vez (~2x), valor moderadamente reducido
+                                score = baseScore * 0.5;
+                                System.out.println("ESTRATÉGICO: " + attacker.getNombre() + " considera Danza Espada (ya buffeado 1x, ataque: " + ataqueActual + " vs base: " + ataqueBase + ")");
+                            } else {
+                                // Se buffeó 2+ veces (3x o más), casi inútil
+                                score = 100.0;
+                                System.out.println("ESTRATÉGICO: " + attacker.getNombre() + " considera Danza Espada (EXCESIVO: ataque " + ataqueActual + " vs base " + ataqueBase + ", ratio: " + String.format("%.2f", ataqueMultiplier) + "x)");
+                            }
+
+                            // Bonificar si hay enemigos con mucha vida para aprovechar el ataque aumentado
+                            List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
+                            boolean enemyHighHP = enemyTeam.stream().anyMatch(enemy -> {
+                                if (enemy.getVida() <= 0) return false;
+                                Long enemyMaxHP = enemy.getVidaBase() != null ? enemy.getVidaBase() : enemy.getVida();
+                                return (double) enemy.getVida() / enemyMaxHP > 0.7;
+                            });
+
+                            if (enemyHighHP && ataqueMultiplier <= 1.0) {
+                                score *= 1.2; // Bonificar Danza Espada si hay enemigos fuertes y no se ha buffeado
+                                System.out.println("ESTRATÉGICO: " + attacker.getNombre() + " bonificado por Danza Espada contra enemigos fuertes");
+                            }
+                        }
+                        case SUBIR_DEFENSA_PROPIO -> {
+                            // Aumentar defensa - valioso cuando se espera recibir ataques
+                            Long vidaMaxima = attacker.getVidaBase() != null ? attacker.getVidaBase() : attacker.getVida();
+                            double healthPercent = (double) attacker.getVida() / (double) vidaMaxima;
+
+                            // NUEVO: Evaluar cuánto se ha buffeado usando defensaModificada
+                            Long defensaBase = attacker.getDefensaBase() != null ? attacker.getDefensaBase() : attacker.getDefensa();
+                            Long defensaActual = attacker.getDefensaModificada() != null ? attacker.getDefensaModificada() : attacker.getDefensa();
+                            double defensaMultiplier = (double) defensaActual / defensaBase;
+
+                            double baseScore = 0;
+                            if (healthPercent > 0.5) {
+                                baseScore = 2000.0;
+                            } else {
+                                baseScore = 800.0;
+                            }
+
+                            // Aplicar penalización basada en cuánto se ha buffeado
+                            if (defensaMultiplier <= 1.0) {
+                                // No se ha buffeado, valor completo
+                                score = baseScore;
+                                System.out.println("DEFENSIVO: " + attacker.getNombre() + " considera Rizo Defensa (primera vez, defensa: " + defensaActual + ")");
+                            } else if (defensaMultiplier <= 2) {
+                                // Se buffeó una vez (~2x), valor reducido
+                                score = baseScore * 0.6;
+                                System.out.println("DEFENSIVO: " + attacker.getNombre() + " considera Rizo Defensa (ya buffeado 1x, defensa: " + defensaActual + " vs base: " + defensaBase + ")");
+                            } else if (defensaMultiplier <= 3) {
+                                // Se buffeó dos veces (~3x), valor muy reducido
+                                score = baseScore * 0.2;
+                                System.out.println("DEFENSIVO: " + attacker.getNombre() + " considera Rizo Defensa (ya buffeado 2x, defensa: " + defensaActual + " vs base: " + defensaBase + ")");
+                            } else {
+                                // Se buffeó 3+ veces (4x o más), prácticamente inútil
+                                score = 50.0;
+                                System.out.println("DEFENSIVO: " + attacker.getNombre() + " considera Rizo Defensa (EXCESIVO: defensa " + defensaActual + " vs base " + defensaBase + ", ratio: " + String.format("%.2f", defensaMultiplier) + "x)");
+                            }
+
+                            // NUEVO: Penalización adicional si hay enemigos débiles
+                            List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
+                            boolean enemyLowHP = enemyTeam.stream().anyMatch(enemy -> {
+                                if (enemy.getVida() <= 0) return false;
+                                Long enemyMaxHP = enemy.getVidaBase() != null ? enemy.getVidaBase() : enemy.getVida();
+                                return (double) enemy.getVida() / enemyMaxHP < 0.4;
+                            });
+
+                            if (enemyLowHP && defensaMultiplier > 1.0) {
+                                score *= 0.3; // Penalizar fuertemente buffear cuando enemigos están débiles
+                                System.out.println("DEFENSIVO: " + attacker.getNombre() + " penalizado por buffear defensa con enemigos débiles");
+                            }
+                        }
+                        case SUBIR_VELOCIDAD_PROPIO -> {
+                            // Aumentar velocidad - valioso para asegurar ataques primero
+                            score = 1800.0;
+                            System.out.println("VELOCIDAD: " + attacker.getNombre() + " considera aumentar velocidad");
+                        }
+                        case DANO_CONTINUO -> {
+                            // Tóxico - se aplica a TODO el equipo rival, muy valioso contra equipos con mucha vida
+                            List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
+
+                            // NUEVO: Verificar si TODO EL EQUIPO ENEMIGO ya está envenenado
+                            boolean allEnemiesPoisoned = true;
+                            boolean anyEnemyPoisoned = false;
+                            int healthyEnemies = 0;
+                            double totalEnemyHP = 0;
+
+                            for (Pokemon enemy : enemyTeam) {
+                                if (enemy.getVida() <= 0) continue;
+
+                                boolean isPoisoned = false;
+                                try {
+                                    Efecto enemyEffect = efectoRepository.findById(enemy.getIdEfecto()).orElse(null);
+                                    if (enemyEffect != null && enemyEffect.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
+                                        isPoisoned = true;
+                                        anyEnemyPoisoned = true;
+                                    }
+                                } catch (Exception e) {
+                                    // Ignorar errores
+                                }
+
+                                if (!isPoisoned) {
+                                    allEnemiesPoisoned = false;
+                                }
+
+                                Long maxHP = enemy.getVidaBase() != null ? enemy.getVidaBase() : enemy.getVida();
+                                if ((double) enemy.getVida() / maxHP > 0.5) {
+                                    healthyEnemies++;
+                                }
+                                totalEnemyHP += enemy.getVida();
+                            }
+
+                            if (allEnemiesPoisoned) {
+                                // Todo el equipo enemigo ya está envenenado - completamente inútil
+                                score = 15.0;
+                                System.out.println("TÓXICO: " + attacker.getNombre() + " NO debe usar veneno (TODO EL EQUIPO YA ENVENENADO)");
+                            } else if (anyEnemyPoisoned) {
+                                // Algunos ya están envenenados - valor muy reducido
+                                score = 800.0;
+                                System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (algunos enemigos ya envenenados)");
+                            } else {
+                                // Nadie está envenenado - evaluar valor completo
+                                double baseScore = 0;
+                                if (totalEnemyHP > 300 && healthyEnemies >= 2) {
+                                    // Equipo enemigo fuerte - veneno muy valioso
+                                    baseScore = 3500.0;
+                                    System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (equipo enemigo fuerte: " + (int)totalEnemyHP + " HP total, " + healthyEnemies + " enemigos sanos)");
+                                } else if (totalEnemyHP > 200) {
+                                    baseScore = 2500.0;
+                                    System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (equipo enemigo moderado: " + (int)totalEnemyHP + " HP total)");
+                                } else {
+                                    baseScore = 1200.0;
+                                    System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (equipo enemigo débil: " + (int)totalEnemyHP + " HP total)");
+                                }
+
+                                score = baseScore;
+                            }
+                        }
+                        case BAJAR_ATAQUE_RIVAL -> {
+                            // Reducir ataque - se aplica a TODO el equipo rival
+                            List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
+
+                            boolean allEnemiesDebuffed = true;
+                            boolean anyEnemyDebuffed = false;
+                            double totalEnemyThreat = 0;
+                            int dangerousEnemies = 0;
+
+                            for (Pokemon enemy : enemyTeam) {
+                                if (enemy.getVida() <= 0) continue;
+
+                                // Verificar si este enemigo ya tiene debuff de ataque
+                                Long ataqueBase = enemy.getAtaqueBase() != null ? enemy.getAtaqueBase() : enemy.getAtaque();
+                                Long ataqueActual = enemy.getAtaqueModificado() != null ? enemy.getAtaqueModificado() : enemy.getAtaque();
+                                double ataqueRatio = (double) ataqueActual / ataqueBase;
+
+                                if (ataqueRatio < 1.0) {
+                                    anyEnemyDebuffed = true;
+                                } else {
+                                    allEnemiesDebuffed = false;
+                                }
+
+                                // Evaluar qué tan peligroso es este enemigo
+                                try {
+                                    Ataque enemyAttack1 = ataqueRepository.findById(enemy.getIdAtaque1()).orElse(null);
+                                    Ataque enemyAttack2 = ataqueRepository.findById(enemy.getIdAtaque2()).orElse(null);
+
+                                    double maxEnemyDamage = 0;
+                                    if (enemyAttack1 != null) {
+                                        maxEnemyDamage = Math.max(maxEnemyDamage, calculateDamage(enemy, attacker, enemyAttack1));
+                                    }
+                                    if (enemyAttack2 != null) {
+                                        maxEnemyDamage = Math.max(maxEnemyDamage, calculateDamage(enemy, attacker, enemyAttack2));
+                                    }
+
+                                    totalEnemyThreat += maxEnemyDamage;
+                                    if (maxEnemyDamage > attacker.getVida() * 0.4) {
+                                        dangerousEnemies++;
+                                    }
+                                } catch (Exception e) {
+                                    // Ignorar errores
+                                }
+                            }
+
+                            if (allEnemiesDebuffed) {
+                                // Todo el equipo enemigo ya tiene debuff de ataque - casi inútil
+                                score = 25.0;
+                                System.out.println("DEBUFF ATAQUE: " + attacker.getNombre() + " NO debe debuffear ataque (TODO EL EQUIPO YA DEBUFFEADO)");
+                            } else if (anyEnemyDebuffed) {
+                                // Algunos ya están debuffeados - valor reducido
+                                double baseScore = totalEnemyThreat > 150 ? 1500.0 : 800.0;
+                                score = baseScore * 0.5;
+                                System.out.println("DEBUFF ATAQUE: " + attacker.getNombre() + " considera debuff de ataque (algunos enemigos ya debuffeados, amenaza total: " + (int)totalEnemyThreat + ")");
+                            } else {
+                                // Nadie está debuffeado - evaluar valor completo
+                                double baseScore = 0;
+                                if (dangerousEnemies >= 2) {
+                                    baseScore = 3000.0;
+                                    System.out.println("DEBUFF ATAQUE: " + attacker.getNombre() + " considera debuff de ataque (múltiples enemigos peligrosos: " + dangerousEnemies + ")");
+                                } else if (totalEnemyThreat > 120) {
+                                    baseScore = 2200.0;
+                                    System.out.println("DEBUFF ATAQUE: " + attacker.getNombre() + " considera debuff de ataque (amenaza total alta: " + (int)totalEnemyThreat + ")");
+                                } else {
+                                    baseScore = 1000.0;
+                                    System.out.println("DEBUFF ATAQUE: " + attacker.getNombre() + " considera debuff de ataque (amenaza moderada: " + (int)totalEnemyThreat + ")");
+                                }
+
+                                score = baseScore;
+                            }
+                        }
+                        case BAJAR_DEFENSA_RIVAL -> {
+                            // Reducir defensa - se aplica a TODO el equipo rival
+                            List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
+
+                            boolean allEnemiesDebuffed = true;
+                            boolean anyEnemyDebuffed = false;
+                            double totalEnemyHP = 0;
+                            int tankEnemies = 0;
+
+                            for (Pokemon enemy : enemyTeam) {
+                                if (enemy.getVida() <= 0) continue;
+
+                                // Verificar si este enemigo ya tiene debuff de defensa
+                                Long defensaBase = enemy.getDefensaBase() != null ? enemy.getDefensaBase() : enemy.getDefensa();
+                                Long defensaActual = enemy.getDefensaModificada() != null ? enemy.getDefensaModificada() : enemy.getDefensa();
+                                double defensaRatio = (double) defensaActual / defensaBase;
+
+                                if (defensaRatio < 1.0) {
+                                    anyEnemyDebuffed = true;
+                                } else {
+                                    allEnemiesDebuffed = false;
+                                }
+
+                                totalEnemyHP += enemy.getVida();
+
+                                // Considerar enemigos "tanque" (alta defensa)
+                                if (enemy.getDefensa() > 100) {
+                                    tankEnemies++;
+                                }
+                            }
+
+                            if (allEnemiesDebuffed) {
+                                // Todo el equipo enemigo ya tiene debuff de defensa - casi inútil
+                                score = 30.0;
+                                System.out.println("DEBUFF DEFENSA: " + attacker.getNombre() + " NO debe debuffear defensa (TODO EL EQUIPO YA DEBUFFEADO)");
+                            } else if (anyEnemyDebuffed) {
+                                // Algunos ya están debuffeados - valor reducido
+                                double baseScore = totalEnemyHP > 250 ? 1200.0 : 600.0;
+                                score = baseScore * 0.6;
+                                System.out.println("DEBUFF DEFENSA: " + attacker.getNombre() + " considera debuff de defensa (algunos enemigos ya debuffeados)");
+                            } else {
+                                // Nadie está debuffeado - evaluar valor completo
+                                double baseScore = 0;
+                                if (tankEnemies >= 2) {
+                                    baseScore = 2800.0;
+                                    System.out.println("DEBUFF DEFENSA: " + attacker.getNombre() + " considera debuff de defensa (múltiples enemigos tanque: " + tankEnemies + ")");
+                                } else if (totalEnemyHP > 300) {
+                                    baseScore = 2000.0;
+                                    System.out.println("DEBUFF DEFENSA: " + attacker.getNombre() + " considera debuff de defensa (equipo enemigo resistente: " + (int)totalEnemyHP + " HP total)");
+                                } else {
+                                    baseScore = 1100.0;
+                                    System.out.println("DEBUFF DEFENSA: " + attacker.getNombre() + " considera debuff de defensa (equipo moderado: " + (int)totalEnemyHP + " HP total)");
+                                }
+
+                                score = baseScore;
+                            }
+                        }
+                        default -> {
+                            // Otros efectos desconocidos
+                            score = 800.0;
+                            System.out.println("EFECTO DESCONOCIDO: " + attacker.getNombre() + " evalúa efecto " + effect.getTipoEfecto());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                score = 100.0; // Puntuación base para efectos con error
+            }
         } else {
             // Para ataques, evaluar el daño potencial
             try {
@@ -1051,22 +1561,22 @@ public class CpuPlayerService {
                 if (attack != null) {
                     double damage = calculateDamage(attacker, target, attack);
                     score = damage;
-                    
+
                     // Bonificar si puede hacer OHKO
                     if (damage >= target.getVida()) {
-                        score += 1000.0;
+                        score += 2000.0; // Reducido para dar más prioridad a curación crítica
                     }
-                    
+
                     // Bonificar ataques super efectivos
                     if (isSuperEffective(attack, target)) {
-                        score += 200.0;
+                        score += 500.0;
                     }
                 }
             } catch (Exception e) {
-                score = 10.0; // Puntuación base para ataques con error
+                score = 50.0; // Puntuación base para ataques con error
             }
         }
-        
+
         return score;
     }
     
@@ -1113,6 +1623,14 @@ public class CpuPlayerService {
             if (effect == null) return;
             
             switch (effect.getTipoEfecto()) {
+                case SUBIR_VIDA -> {
+                    // Curación: restaurar porcentaje de vida
+                    Long vidaMaxima = target.getVidaBase() != null ? target.getVidaBase() : target.getVida();
+                    long healAmount = (long) (vidaMaxima * effect.getMultiplicador());
+                    // Asegurar que no exceda la vida máxima
+                    long newHP = Math.min(vidaMaxima, target.getVida() + healAmount);
+                    target.setVida(newHP);
+                }
                 case SUBIR_ATAQUE_PROPIO -> {
                     Long newAttack = Math.min(attacker.getAtaque() * 2, attacker.getAtaque() + 50);
                     attacker.setAtaqueModificado(newAttack);

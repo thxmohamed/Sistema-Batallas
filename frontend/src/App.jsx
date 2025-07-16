@@ -18,7 +18,6 @@ function App() {
           <nav className="navbar">
             <Link to="/" className="nav-logo">⚡ PokéBattle</Link>
             <ul className="nav-links">
-              <li><Link to="/" className="nav-link">🏠 Inicio</Link></li>
               <li><Link to="/pokemon/crear" className="nav-link">🐾 Crear Pokémon</Link></li>
               <li><Link to="/entrenador/crear" className="nav-link">👤 Crear Entrenador</Link></li>            <li><Link to="/setup" className="nav-link">⚔️ Batalla</Link></li>
             <li><Link to="/informacion" className="nav-link">ℹ️ Info</Link></li>

@@ -247,8 +247,10 @@ const BattleView = () => {
           setEffectsTrainer2(effectResponses2.map((response) => response.data));
 
           setBattleLog([
-            `¡La batalla aleatoria entre ${teamName1} y ${teamName2} ha comenzado!`,
-            `${teamName1} inicia el combate.`
+            `🏟️ ¡La batalla aleatoria entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `👥 Equipo de ${teamName1}: ${pokemonData1.map(p => p.nombre).join(', ')}`,
+            `👥 Equipo de ${teamName2}: ${pokemonData2.map(p => p.nombre).join(', ')}`,
+            `🚀 ${teamName1} inicia el combate.`
           ]);
         } else if (batalla) {
           // Initialize pre-created battle (like CPU Hard difficulty)
@@ -292,9 +294,11 @@ const BattleView = () => {
           setEffectsTrainer2(effectResponses2.map((response) => response.data));
 
           setBattleLog([
-            `¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
-            cpuDifficulty === "HARD" ? `La CPU ha seleccionado un equipo optimizado contra ti` : `${teamName1} enfrenta a la CPU en dificultad ${cpuDifficulty}`,
-            `${teamName1} inicia el combate.`
+            `🏟️ ¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `👥 Equipo de ${teamName1}: ${pokemonData1.map(p => p.nombre).join(', ')}`,
+            `👥 Equipo de ${teamName2}: ${pokemonData2.map(p => p.nombre).join(', ')}`,
+            cpuDifficulty === "HARD" ? `🧠 La CPU ha seleccionado un equipo optimizado contra ti` : `🤖 ${teamName1} enfrenta a la CPU en dificultad ${cpuDifficulty}`,
+            `🚀 ${teamName1} inicia el combate.`
           ]);
         } else if (isCpuBattle) {
           // Initialize CPU battle - need to create a random team for CPU
@@ -349,9 +353,11 @@ const BattleView = () => {
           setEffectsTrainer2(effectResponses2.map((response) => response.data));
 
           setBattleLog([
-            `¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
-            `${teamName1} enfrenta a la CPU en dificultad ${cpuDifficulty}`,
-            `${teamName1} inicia el combate.`
+            `🏟️ ¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `👥 Equipo de ${teamName1}: ${pokemonData1.map(p => p.nombre).join(', ')}`,
+            `👥 Equipo de ${teamName2}: ${cpuTeamData.map(p => p.nombre).join(', ')}`,
+            `🤖 ${teamName1} enfrenta a la CPU en dificultad ${cpuDifficulty}`,
+            `🚀 ${teamName1} inicia el combate.`
           ]);
         } else {
           // Initialize normal battle
@@ -408,8 +414,10 @@ const BattleView = () => {
           setEffectsTrainer2(effectResponses2.map((response) => response.data));
 
           setBattleLog([
-            `¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
-            `${teamName1} inicia el combate.`
+            `🏟️ ¡La batalla entre ${teamName1} y ${teamName2} ha comenzado!`,
+            `👥 Equipo de ${teamName1}: ${pokemonData1.map(p => p.nombre).join(', ')}`,
+            `👥 Equipo de ${teamName2}: ${pokemonData2.map(p => p.nombre).join(', ')}`,
+            `🚀 ${teamName1} inicia el combate.`
           ]);
         }
         
@@ -598,9 +606,7 @@ const BattleView = () => {
 
       console.log("🤖 CPU: Selecciones configuradas");
       
-      // Añadir mensaje al log sobre la acción de la CPU
-      setBattleLog(prev => [...prev, `🤖 CPU ${cpuAction.reasoning}`]);
-
+      // No añadir mensaje técnico al log aquí - se añadirá en executeCombat con el formato mejorado
       console.log("🤖 CPU: Decisión completada, permitiendo auto-ejecución por useEffect");
 
     } catch (error) {
@@ -840,7 +846,7 @@ const BattleView = () => {
       // Detectar si el daño fue causado por veneno al inicio del turno
       if ((damageByPoison1 && teamEffects.team1.effectId) || (damageByPoison2 && teamEffects.team2.effectId)) {
         const damagedTeam = damageByPoison1 ? teamName1 : teamName2;
-        setBattleLog(prev => [...prev, `💀 El equipo de ${damagedTeam} sufre daño por envenenamiento`]);
+        setBattleLog(prev => [...prev, `☠️ El veneno hace efecto en el equipo de ${damagedTeam}`]);
         
         // Mostrar Pokémon específicos que sufrieron daño
         if (damageByPoison1) {
@@ -848,7 +854,7 @@ const BattleView = () => {
             if (vida < previousLives1[index]) {
               const pokemon = pokemonDataTrainer1[index];
               const damage = previousLives1[index] - vida;
-              setBattleLog(prev => [...prev, `🩸 ${pokemon.nombre} pierde ${damage} HP por veneno (${vida}/${vidaMaxE1[index]} HP)`]);
+              setBattleLog(prev => [...prev, `🩸 ${pokemon.nombre} pierde ${damage} HP por veneno (${vida}/${vidaMaxE1[index]} HP restantes)`]);
             }
           });
         }
@@ -857,34 +863,62 @@ const BattleView = () => {
             if (vida < previousLives2[index]) {
               const pokemon = pokemonDataTrainer2[index];
               const damage = previousLives2[index] - vida;
-              setBattleLog(prev => [...prev, `🩸 ${pokemon.nombre} pierde ${damage} HP por veneno (${vida}/${vidaMaxE2[index]} HP)`]);
+              setBattleLog(prev => [...prev, `🩸 ${pokemon.nombre} pierde ${damage} HP por veneno (${vida}/${vidaMaxE2[index]} HP restantes)`]);
             }
           });
         }
       }
 
-      // Add to battle log
-      const currentTrainer = isTeam1Turn ? teamName1 : teamName2;
-      const action = isTeam1Turn ? 
-        (useEffectE1 ? `usó ${effectsTrainer1[selectedAttackerE1]?.nombre}` : `atacó con ${ataque?.nombre || 'Ataque'}`) :
-        (useEffectE2 ? `usó ${effectsTrainer2[selectedAttackerE2]?.nombre}` : `atacó con ${ataque?.nombre || 'Ataque'}`);
+      // Add detailed battle log
+      const attackerTeamName = isTeam1Turn ? teamName1 : teamName2;
+      const attackerPokemon = isTeam1Turn ? pokemonDataTrainer1[selectedAttackerE1] : pokemonDataTrainer2[selectedAttackerE2];
       
-      setBattleLog(prev => [...prev, `Turno ${turn}: ${currentTrainer} ${action}`]);
+      if (useEffect) {
+        // Log para efectos
+        const effect = isTeam1Turn ? effectsTrainer1[selectedAttackerE1] : effectsTrainer2[selectedAttackerE2];
+        setBattleLog(prev => [...prev, `🔮 ${attackerPokemon?.nombre} de ${attackerTeamName} ha usado ${effect?.nombre}`]);
+      } else {
+        // Log para ataques
+        const targetTeamName = isTeam1Turn ? teamName2 : teamName1;
+        const targetPokemon = isTeam1Turn ? pokemonDataTrainer2[selectedTargetE1] : pokemonDataTrainer1[selectedTargetE2];
+        
+        setBattleLog(prev => [...prev, `⚔️ ${attackerPokemon?.nombre} de ${attackerTeamName} ha usado ${ataque?.nombre || 'Ataque'} contra ${targetPokemon?.nombre}`]);
+        
+        // Calcular y mostrar el daño causado
+        const targetIndex = isTeam1Turn ? selectedTargetE1 : selectedTargetE2;
+        const previousTargetLife = isTeam1Turn ? previousLives2[targetIndex] : previousLives1[targetIndex];
+        const newTargetLife = isTeam1Turn ? newLivesTrainer2[targetIndex] : newLivesTrainer1[targetIndex];
+        const damage = previousTargetLife - newTargetLife;
+        
+        if (damage > 0) {
+          setBattleLog(prev => [...prev, `💥 ${targetPokemon?.nombre} ha perdido ${damage} HP (${newTargetLife}/${isTeam1Turn ? vidaMaxE2[targetIndex] : vidaMaxE1[targetIndex]} HP)`]);
+          
+          // Verificar si el Pokémon fue derrotado
+          if (newTargetLife <= 0) {
+            setBattleLog(prev => [...prev, `💀 ${targetPokemon?.nombre} ha sido derrotado`]);
+          }
+        } else if (damage === 0) {
+          setBattleLog(prev => [...prev, `🛡️ ${targetPokemon?.nombre} no recibió daño`]);
+        } else {
+          // Caso de curación (damage negativo)
+          setBattleLog(prev => [...prev, `💚 ${targetPokemon?.nombre} se ha curado ${Math.abs(damage)} HP`]);
+        }
+      }
 
       // Añadir mensajes de efectos de equipo al log
       if (response.data.efectoContinuoEquipo1 && response.data.turnosRestantesEquipo1 > 0 && !teamEffects.team1.effectId) {
-        setBattleLog(prev => [...prev, `¡El equipo de ${teamName1} ha sido envenenado! (${response.data.turnosRestantesEquipo1} turnos)`]);
+        setBattleLog(prev => [...prev, `☠️ ¡Todo el equipo de ${teamName1} ha sido envenenado! (${response.data.turnosRestantesEquipo1} turnos restantes)`]);
       }
       if (response.data.efectoContinuoEquipo2 && response.data.turnosRestantesEquipo2 > 0 && !teamEffects.team2.effectId) {
-        setBattleLog(prev => [...prev, `¡El equipo de ${teamName2} ha sido envenenado! (${response.data.turnosRestantesEquipo2} turnos)`]);
+        setBattleLog(prev => [...prev, `☠️ ¡Todo el equipo de ${teamName2} ha sido envenenado! (${response.data.turnosRestantesEquipo2} turnos restantes)`]);
       }
 
       // Mostrar cuando los efectos terminan
       if (teamEffects.team1.effectId && !response.data.efectoContinuoEquipo1) {
-        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${teamName1} ha terminado.`]);
+        setBattleLog(prev => [...prev, `💚 El envenenamiento del equipo de ${teamName1} ha terminado.`]);
       }
       if (teamEffects.team2.effectId && !response.data.efectoContinuoEquipo2) {
-        setBattleLog(prev => [...prev, `El envenenamiento del equipo de ${teamName2} ha terminado.`]);
+        setBattleLog(prev => [...prev, `💚 El envenenamiento del equipo de ${teamName2} ha terminado.`]);
       }
 
       // Añadir mensajes de efectos de reducción de estadísticas
@@ -915,16 +949,20 @@ const BattleView = () => {
         setWinner(winnerTrainer);
         
         if (victoryByPoison) {
-          setBattleLog(prev => [...prev, `☠️ ¡${defeatedTrainer} ha sido derrotado por envenenamiento!`]);
+          setBattleLog(prev => [...prev, `☠️ ¡${defeatedTrainer} ha sido completamente derrotado por envenenamiento!`]);
           setBattleLog(prev => [...prev, `🏆 ¡${winnerTrainer} ha ganado la batalla por daño continuo!`]);
         } else {
-          setBattleLog(prev => [...prev, `¡${winnerTrainer} ha ganado la batalla!`]);
+          setBattleLog(prev => [...prev, `🏆 ¡${winnerTrainer} ha ganado la batalla! Todos los Pokémon de ${defeatedTrainer} han sido derrotados.`]);
         }
         
         // La música de victoria se maneja en el useEffect cuando se establece el winner
       } else {
         const nextTurn = turn + 1;
         setTurn(nextTurn);
+        
+        // Indicar cambio de turno solo si la batalla continúa
+        const nextTeamName = isTeam1Turn ? teamName2 : teamName1;
+        setBattleLog(prev => [...prev, `🔄 Turno de ${nextTeamName}`]);
         
         // Si es batalla CPU y el próximo turno es de la CPU (equipo 2), ejecutar turno automáticamente
         // CPU juega en turnos pares (2, 4, 6...) cuando nextTurn % 2 === 0
@@ -1481,11 +1519,6 @@ const BattleView = () => {
               }
             </>
           )}
-        </button>
-        
-        <button className="btn btn-secondary" onClick={resetBattle}>
-          <span className="btn-icon">🏠</span>
-          Volver a Selección
         </button>
       </div>
 
