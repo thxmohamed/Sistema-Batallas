@@ -5,6 +5,19 @@ import pokemonService from "../Services/pokemon.service";
 import batallaService from "../services/batalla.service";
 import "../App.css";
 
+// Helper function for type icons
+const getTypeIcon = (type) => {
+  const typeIcons = {
+    AGUA: "💧",
+    FUEGO: "🔥",
+    PLANTA: "🌿",
+    TIERRA: "🪨",
+    ELECTRICO: "⚡",
+    NORMAL: "⭐",
+  };
+  return typeIcons[type] || "❓";
+};
+
 const BattleSetupView = () => {
   const [entrenadores, setEntrenadores] = useState([]);
   const [selectedTrainer1, setSelectedTrainer1] = useState(null);
@@ -765,8 +778,30 @@ const BattleSetupView = () => {
                         <div className="trainer-avatar">👨‍💼</div>
                         <h4 className="trainer-name">{entrenador.nombre}</h4>
                       </div>
-                      <div className="trainer-info">
-                        <span className="pokemon-count">🎯 {entrenador.pokemons?.length || 0} Pokémon</span>
+                      
+                      <div className="trainer-pokemon-team">
+                        {entrenador.pokemons && entrenador.pokemons.length > 0 ? (
+                          entrenador.pokemons.map((pokemon, index) => (
+                            <div key={pokemon.id || index} className="team-pokemon-preview">
+                              <img
+                                src={`data:image/png;base64,${pokemon.sprite}`}
+                                alt={pokemon.nombre}
+                                className="pokemon-preview-sprite"
+                              />
+                            </div>
+                          ))
+                        ) : (
+                          <div className="no-pokemon-message">
+                            <span>Sin Pokémon asignados</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="trainer-card-footer">
+                        <div className="team-strength-indicator">
+                          <span className="strength-icon">⚡</span>
+                          <span>{entrenador.pokemons?.length === 3 ? 'Equipo Completo' : `${entrenador.pokemons?.length || 0}/3 Pokémon`}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1139,18 +1174,6 @@ const PokemonPreview = ({ id }) => {
       />
     </div>
   );
-};
-
-// Helper function for type icons
-const getTypeIcon = (tipo) => {
-  const icons = {
-    AGUA: "💧",
-    FUEGO: "🔥",
-    PLANTA: "🌿",
-    TIERRA: "🌍",
-    ELECTRICO: "⚡"
-  };
-  return icons[tipo] || "⭐";
 };
 
 export default BattleSetupView;
