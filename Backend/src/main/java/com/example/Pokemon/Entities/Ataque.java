@@ -12,12 +12,24 @@ public class Ataque {
     private Long id;
     private String nombre;
     public enum TipoAtaque {
-        AGUA,
+        NORMAL,
         FUEGO,
-        PLANTA,
-        TIERRA,
+        AGUA,
         ELECTRICO,
-        NORMAL
+        PLANTA,
+        HIELO,
+        LUCHA,
+        VENENO,
+        TIERRA,
+        VOLADOR,
+        PSIQUICO,
+        BICHO,
+        ROCA,
+        FANTASMA,
+        DRAGON,
+        SINIESTRO,
+        ACERO,
+        HADA
     }
     @Enumerated(EnumType.STRING)
 

@@ -22,6 +22,12 @@ const CrearPokemon = () => {
   const [availableEffects, setAvailableEffects] = useState([]);
   const [loadingAttacks, setLoadingAttacks] = useState(true);
   const [loadingEffects, setLoadingEffects] = useState(true);
+  
+  // Search filters for attacks
+  const [attackFilters, setAttackFilters] = useState({
+    attack1: { name: '', type: '' },
+    attack2: { name: '', type: '' }
+  });
 
   // Load available attacks and effects when component mounts
   useEffect(() => {
@@ -48,12 +54,24 @@ const CrearPokemon = () => {
   // Helper function to get type icon and color
   const getTypeStyle = (tipo) => {
     const typeStyles = {
-      AGUA: { icon: "💧", color: "#6890F0", bgColor: "rgba(104, 144, 240, 0.1)" },
+      NORMAL: { icon: "⭐", color: "#A8A878", bgColor: "rgba(168, 168, 120, 0.1)" },
       FUEGO: { icon: "🔥", color: "#F08030", bgColor: "rgba(240, 128, 48, 0.1)" },
-      PLANTA: { icon: "🌿", color: "#78C850", bgColor: "rgba(120, 200, 80, 0.1)" },
-      TIERRA: { icon: "🌍", color: "#E0C068", bgColor: "rgba(224, 192, 104, 0.1)" },
+      AGUA: { icon: "💧", color: "#6890F0", bgColor: "rgba(104, 144, 240, 0.1)" },
       ELECTRICO: { icon: "⚡", color: "#F8D030", bgColor: "rgba(248, 208, 48, 0.1)" },
-      NORMAL: { icon: "⭐", color: "#A8A878", bgColor: "rgba(168, 168, 120, 0.1)" }
+      PLANTA: { icon: "🌿", color: "#78C850", bgColor: "rgba(120, 200, 80, 0.1)" },
+      HIELO: { icon: "❄️", color: "#98D8D8", bgColor: "rgba(152, 216, 216, 0.1)" },
+      LUCHA: { icon: "👊", color: "#C03028", bgColor: "rgba(192, 48, 40, 0.1)" },
+      VENENO: { icon: "☠️", color: "#A040A0", bgColor: "rgba(160, 64, 160, 0.1)" },
+      TIERRA: { icon: "🌍", color: "#E0C068", bgColor: "rgba(224, 192, 104, 0.1)" },
+      VOLADOR: { icon: "🦅", color: "#A890F0", bgColor: "rgba(168, 144, 240, 0.1)" },
+      PSIQUICO: { icon: "🔮", color: "#F85888", bgColor: "rgba(248, 88, 136, 0.1)" },
+      BICHO: { icon: "🐛", color: "#A8B820", bgColor: "rgba(168, 184, 32, 0.1)" },
+      ROCA: { icon: "⛰️", color: "#B8A038", bgColor: "rgba(184, 160, 56, 0.1)" },
+      FANTASMA: { icon: "👻", color: "#705898", bgColor: "rgba(112, 88, 152, 0.1)" },
+      DRAGON: { icon: "🐉", color: "#7038F8", bgColor: "rgba(112, 56, 248, 0.1)" },
+      SINIESTRO: { icon: "🌙", color: "#705848", bgColor: "rgba(112, 88, 72, 0.1)" },
+      ACERO: { icon: "⚙️", color: "#B8B8D0", bgColor: "rgba(184, 184, 208, 0.1)" },
+      HADA: { icon: "✨", color: "#EE99AC", bgColor: "rgba(238, 153, 172, 0.1)" }
     };
     return typeStyles[tipo] || typeStyles.NORMAL;
   };
@@ -65,6 +83,45 @@ const CrearPokemon = () => {
 
   const handleFileChange = (e) => {
     setFormData({ ...formData, sprite: e.target.files[0] });
+  };
+
+  // Filter attacks based on search criteria
+  const filterAttacks = (attackKey, excludeAttackId = null) => {
+    const filters = attackFilters[attackKey];
+    return availableAttacks.filter(attack => {
+      // Exclude the other selected attack
+      if (excludeAttackId && attack.id.toString() === excludeAttackId) {
+        return false;
+      }
+      
+      // Filter by name
+      if (filters.name && !attack.nombre.toLowerCase().includes(filters.name.toLowerCase())) {
+        return false;
+      }
+      
+      // Filter by type
+      if (filters.type && attack.tipoAtaque !== filters.type) {
+        return false;
+      }
+      
+      return true;
+    });
+  };
+
+  const handleAttackFilterChange = (attackKey, filterType, value) => {
+    setAttackFilters(prev => ({
+      ...prev,
+      [attackKey]: {
+        ...prev[attackKey],
+        [filterType]: value
+      }
+    }));
+  };
+
+  // Get unique attack types for filter dropdown
+  const getUniqueAttackTypes = () => {
+    const types = [...new Set(availableAttacks.map(attack => attack.tipoAtaque))];
+    return types.sort();
   };
 
   const handleSubmit = async (e) => {
@@ -159,11 +216,24 @@ const CrearPokemon = () => {
                 required
               >
                 <option value="">Seleccionar tipo...</option>
-                <option value="AGUA">💧 Agua</option>
+                <option value="NORMAL">⭐ Normal</option>
                 <option value="FUEGO">🔥 Fuego</option>
-                <option value="PLANTA">🌿 Planta</option>
-                <option value="TIERRA">🌍 Tierra</option>
+                <option value="AGUA">💧 Agua</option>
                 <option value="ELECTRICO">⚡ Eléctrico</option>
+                <option value="PLANTA">🌿 Planta</option>
+                <option value="HIELO">❄️ Hielo</option>
+                <option value="LUCHA">👊 Lucha</option>
+                <option value="VENENO">☠️ Veneno</option>
+                <option value="TIERRA">🌍 Tierra</option>
+                <option value="VOLADOR">🦅 Volador</option>
+                <option value="PSIQUICO">🔮 Psíquico</option>
+                <option value="BICHO">🐛 Bicho</option>
+                <option value="ROCA">⛰️ Roca</option>
+                <option value="FANTASMA">👻 Fantasma</option>
+                <option value="DRAGON">🐉 Dragón</option>
+                <option value="SINIESTRO">🌙 Siniestro</option>
+                <option value="ACERO">⚙️ Acero</option>
+                <option value="HADA">✨ Hada</option>
               </select>
             </div>
 
@@ -264,8 +334,52 @@ const CrearPokemon = () => {
                     value={formData.idAtaque1}
                     required
                   />
+                  
+                  {/* Search Filters */}
+                  <div className="attack-filters">
+                    <div className="filter-row">
+                      <div className="filter-group">
+                        <label className="filter-label">🔍 Buscar por nombre:</label>
+                        <input
+                          type="text"
+                          className="filter-input"
+                          placeholder="Nombre del ataque..."
+                          value={attackFilters.attack1.name}
+                          onChange={(e) => handleAttackFilterChange('attack1', 'name', e.target.value)}
+                        />
+                      </div>
+                      <div className="filter-group">
+                        <label className="filter-label">🌟 Filtrar por tipo:</label>
+                        <select
+                          className="filter-select"
+                          value={attackFilters.attack1.type}
+                          onChange={(e) => handleAttackFilterChange('attack1', 'type', e.target.value)}
+                        >
+                          <option value="">Todos los tipos</option>
+                          {getUniqueAttackTypes().map(type => (
+                            <option key={type} value={type}>
+                              {getTypeStyle(type).icon} {type}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {(attackFilters.attack1.name || attackFilters.attack1.type) && (
+                        <button
+                          type="button"
+                          className="clear-filters-btn"
+                          onClick={() => setAttackFilters(prev => ({
+                            ...prev,
+                            attack1: { name: '', type: '' }
+                          }))}
+                        >
+                          ✕ Limpiar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
                   <div className="attack-options-grid">
-                    {availableAttacks.map((attack) => {
+                    {filterAttacks('attack1').map((attack) => {
                       const typeStyle = getTypeStyle(attack.tipoAtaque);
                       const isSelected = formData.idAtaque1 === attack.id.toString();
                       return (
@@ -302,7 +416,23 @@ const CrearPokemon = () => {
                       );
                     })}
                   </div>
-                  {!formData.idAtaque1 && (
+                  {filterAttacks('attack1').length === 0 && availableAttacks.length > 0 && (
+                    <div className="no-results-message">
+                      <span className="no-results-icon">🔍</span>
+                      <p>No se encontraron ataques con los filtros aplicados</p>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setAttackFilters(prev => ({
+                          ...prev,
+                          attack1: { name: '', type: '' }
+                        }))}
+                      >
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  )}
+                  {!formData.idAtaque1 && filterAttacks('attack1').length > 0 && (
                     <p className="selection-hint">Selecciona tu primer ataque haciendo clic en una opción</p>
                   )}
                 </div>
@@ -327,47 +457,110 @@ const CrearPokemon = () => {
                     value={formData.idAtaque2}
                     required
                   />
-                  <div className="attack-options-grid">
-                    {availableAttacks
-                      .filter(attack => attack.id.toString() !== formData.idAtaque1) // Exclude first attack
-                      .map((attack) => {
-                        const typeStyle = getTypeStyle(attack.tipoAtaque);
-                        const isSelected = formData.idAtaque2 === attack.id.toString();
-                        return (
-                          <div
-                            key={attack.id}
-                            className={`attack-option ${isSelected ? 'selected' : ''}`}
-                            onClick={() => setFormData({ ...formData, idAtaque2: attack.id.toString() })}
-                            style={{
-                              borderColor: isSelected ? typeStyle.color : '#e5e7eb',
-                              backgroundColor: isSelected ? typeStyle.bgColor : 'white'
-                            }}
-                          >
-                            <div className="attack-type-icon" style={{ color: typeStyle.color }}>
-                              {typeStyle.icon}
-                            </div>
-                            <div className="attack-details">
-                              <h4 className="attack-name" style={{ color: isSelected ? typeStyle.color : '#374151' }}>
-                                {attack.nombre}
-                              </h4>
-                              <span className="attack-type-badge" style={{ 
-                                backgroundColor: typeStyle.color,
-                                color: 'white'
-                              }}>
-                                {attack.tipoAtaque}
-                              </span>
-                              <p className="attack-description">{attack.descripcion}</p>
-                            </div>
-                            {isSelected && (
-                              <div className="selected-indicator">
-                                <span>✓</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                  
+                  {/* Search Filters */}
+                  <div className="attack-filters">
+                    <div className="filter-row">
+                      <div className="filter-group">
+                        <label className="filter-label">🔍 Buscar por nombre:</label>
+                        <input
+                          type="text"
+                          className="filter-input"
+                          placeholder="Nombre del ataque..."
+                          value={attackFilters.attack2.name}
+                          onChange={(e) => handleAttackFilterChange('attack2', 'name', e.target.value)}
+                        />
+                      </div>
+                      <div className="filter-group">
+                        <label className="filter-label">🌟 Filtrar por tipo:</label>
+                        <select
+                          className="filter-select"
+                          value={attackFilters.attack2.type}
+                          onChange={(e) => handleAttackFilterChange('attack2', 'type', e.target.value)}
+                        >
+                          <option value="">Todos los tipos</option>
+                          {getUniqueAttackTypes().map(type => (
+                            <option key={type} value={type}>
+                              {getTypeStyle(type).icon} {type}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {(attackFilters.attack2.name || attackFilters.attack2.type) && (
+                        <button
+                          type="button"
+                          className="clear-filters-btn"
+                          onClick={() => setAttackFilters(prev => ({
+                            ...prev,
+                            attack2: { name: '', type: '' }
+                          }))}
+                        >
+                          ✕ Limpiar
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {!formData.idAtaque2 && (
+                  
+                  <div className="attack-options-grid">
+                    {filterAttacks('attack2').map((attack) => {
+                      const typeStyle = getTypeStyle(attack.tipoAtaque);
+                      const isSelected = formData.idAtaque2 === attack.id.toString();
+                      const isUsedInPrimary = formData.idAtaque1 === attack.id.toString();
+                      
+                      // Don't show if already selected as primary attack
+                      if (isUsedInPrimary) return null;
+                      
+                      return (
+                        <div
+                          key={attack.id}
+                          className={`attack-option ${isSelected ? 'selected' : ''}`}
+                          onClick={() => setFormData({ ...formData, idAtaque2: attack.id.toString() })}
+                          style={{
+                            borderColor: isSelected ? typeStyle.color : '#e5e7eb',
+                            backgroundColor: isSelected ? typeStyle.bgColor : 'white'
+                          }}
+                        >
+                          <div className="attack-type-icon" style={{ color: typeStyle.color }}>
+                            {typeStyle.icon}
+                          </div>
+                          <div className="attack-details">
+                            <h4 className="attack-name" style={{ color: isSelected ? typeStyle.color : '#374151' }}>
+                              {attack.nombre}
+                            </h4>
+                            <span className="attack-type-badge" style={{ 
+                              backgroundColor: typeStyle.color,
+                              color: 'white'
+                            }}>
+                              {attack.tipoAtaque}
+                            </span>
+                            <p className="attack-description">{attack.descripcion}</p>
+                          </div>
+                          {isSelected && (
+                            <div className="selected-indicator">
+                              <span>✓</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {filterAttacks('attack2').filter(attack => attack.id.toString() !== formData.idAtaque1).length === 0 && availableAttacks.length > 0 && (
+                    <div className="no-results-message">
+                      <span className="no-results-icon">🔍</span>
+                      <p>No se encontraron ataques con los filtros aplicados</p>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setAttackFilters(prev => ({
+                          ...prev,
+                          attack2: { name: '', type: '' }
+                        }))}
+                      >
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  )}
+                  {!formData.idAtaque2 && filterAttacks('attack2').filter(attack => attack.id.toString() !== formData.idAtaque1).length > 0 && (
                     <p className="selection-hint">Selecciona tu segundo ataque haciendo clic en una opción</p>
                   )}
                 </div>

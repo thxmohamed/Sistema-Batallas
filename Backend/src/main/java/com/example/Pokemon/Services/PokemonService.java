@@ -35,6 +35,9 @@ public class PokemonService {
     @Autowired
     EfectoService efectoService;
 
+    @Autowired
+    TipoEfectividadService tipoEfectividadService;
+
     public List<Pokemon> getAllPokemon() {
         return pokemonRepository.findAll();
     }
@@ -141,58 +144,22 @@ public class PokemonService {
 
     public Pokemon atacar(Pokemon usuario, Pokemon rival, Ataque ataque) {
         double stab = 1.0;
-        double efectividad = 1.0;
         int potencia = ataque.getPotencia();
-        String tipoUsuario = String.valueOf(usuario.getTipoPokemon());
-        String tipoRival = String.valueOf(rival.getTipoPokemon());
-        String tipoAtaque = String.valueOf(ataque.getTipoAtaque());
 
-        if(tipoUsuario.equals(tipoAtaque)){
+        // Calcular STAB (Same Type Attack Bonus)
+        // Convertir ambos tipos a String para comparar
+        if (usuario.getTipoPokemon().name().equals(ataque.getTipoAtaque().name())) {
             stab = 1.5;
         }
-        // Calcular efectividad
-        switch (tipoAtaque) {
-            case "AGUA":
-                if (tipoRival.equals("FUEGO")) {
-                    efectividad = 2.0;
-                } else if (tipoRival.equals("ELECTRICO") || tipoRival.equals("AGUA")) {
-                    efectividad = 0.5;
-                }
-                break;
-            case "FUEGO":
-                if (tipoRival.equals("PLANTA")) {
-                    efectividad = 2.0;
-                } else if (tipoRival.equals("AGUA") || tipoRival.equals("FUEGO")) {
-                    System.out.println("holaaaaaaa");
-                    efectividad = 0.5;
-                }
-                break;
-            case "PLANTA":
-                if (tipoRival.equals("TIERRA")) {
-                    efectividad = 2.0;
-                } else if (tipoRival.equals("FUEGO") || tipoRival.equals("PLANTA")) {
-                    efectividad = 0.5;
-                }
-                break;
-            case "TIERRA":
-                if (tipoRival.equals("ELECTRICO")) {
-                    efectividad = 2.0;
-                } else if (tipoRival.equals("PLANTA") || tipoRival.equals("TIERRA")) {
-                    efectividad = 0.5;
-                }
-                break;
-            case "ELECTRICO":
-                if (tipoRival.equals("AGUA")) {
-                    efectividad = 2.0;
-                } else if (tipoRival.equals("TIERRA") || tipoRival.equals("ELECTRICO")) {
-                    efectividad = 0.5;
-                }
-                break;
-            case "NORMAL":
-                // Los ataques normales tienen efectividad neutra (1.0) contra todos los tipos
-                efectividad = 1.0;
-                break;
-        }
+
+        // Calcular efectividad usando el nuevo sistema de tipos
+        // Convertir TipoAtaque a TipoPokemon usando el nombre del enum
+        Pokemon.TipoPokemon tipoAtaqueConvertido = Pokemon.TipoPokemon.valueOf(ataque.getTipoAtaque().name());
+        double efectividad = tipoEfectividadService.calcularMultiplicador(
+            tipoAtaqueConvertido,
+            rival.getTipoPokemon()
+        );
+
         // Usar estadísticas efectivas para el cálculo de daño
         Long ataqueEfectivo = usuario.getAtaqueEfectivo();
         Long defensaEfectiva = rival.getDefensaEfectiva();
@@ -368,7 +335,7 @@ public class PokemonService {
         System.out.println("Multiplicador: " + efecto.getMultiplicador());
         
         for (Pokemon pokemon : equipo) {
-            if (pokemon.getVida() > 0) { // Solo aplicar a pokémon vivos
+            if (pokemon.getVida() > 0) // Solo aplicar a pokémon vivos
                 try {
                     // Obtener la vida máxima original del pokémon
                     Pokemon pokemonOriginal = getPokemonById(pokemon.getId());
@@ -388,7 +355,6 @@ public class PokemonService {
                 } catch (Exception e) {
                     System.err.println("Error aplicando daño continuo a " + pokemon.getNombre() + ": " + e.getMessage());
                 }
-            }
         }
     }
 

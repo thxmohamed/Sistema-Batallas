@@ -1546,12 +1546,25 @@ const BattleView = () => {
 // Helper function for type icons
 const getTypeIcon = (tipo) => {
   const icons = {
-    AGUA: "💧",
+
+    NORMAL: "⭐",
     FUEGO: "🔥",
-    PLANTA: "🌿",
-    TIERRA: "🌍",
+    AGUA: "💧",
     ELECTRICO: "⚡",
-    NORMAL: "⭐"
+    PLANTA: "🌿",
+    HIELO: "❄️",
+    LUCHA: "👊",
+    VENENO: "☠️",
+    TIERRA: "🌍",
+    VOLADOR: "🦅",
+    PSIQUICO: "🔮",
+    BICHO: "🐛",
+    ROCA: "⛰️",
+    FANTASMA: "👻",
+    DRAGON: "🐉",
+    SINIESTRO: "🌙",
+    ACERO: "⚙️",
+    HADA: "✨"
   };
   return icons[tipo] || "❓";
 };

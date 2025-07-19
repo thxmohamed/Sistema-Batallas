@@ -7,6 +7,7 @@ import com.example.Pokemon.Entities.Efecto;
 import com.example.Pokemon.Entities.Pokemon;
 import com.example.Pokemon.Repositories.AtaqueRepository;
 import com.example.Pokemon.Repositories.EfectoRepository;
+import com.example.Pokemon.Utils.TablaEfectividades;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -236,23 +237,37 @@ public class CpuPlayerService {
             
             // Evaluar ataque 1
             if (attack1 != null) {
-                double damage1 = calculateDamage(attacker, target, attack1);
-                System.out.println("  - " + attack1.getNombre() + ": " + String.format("%.1f", damage1) + " daño");
+                // Verificar efectividad antes de considerar el ataque
+                double effectiveness1 = calculateTypeEffectiveness(attack1.getTipoAtaque(), target.getTipoPokemon());
                 
-                if (damage1 > maxDamage) {
-                    maxDamage = damage1;
-                    bestResult = new BestAttackResult(pokemonIndex, 0, damage1, attacker.getNombre(), attack1.getNombre());
+                if (effectiveness1 == 0.0) {
+                    System.out.println("  - " + attack1.getNombre() + " (" + attack1.getTipoAtaque() + "): SIN EFECTO contra " + target.getTipoPokemon() + " - DESCARTADO");
+                } else {
+                    double damage1 = calculateDamage(attacker, target, attack1);
+                    System.out.println("  - " + attack1.getNombre() + " (" + attack1.getTipoAtaque() + "): " + String.format("%.1f", damage1) + " daño (efectividad: " + effectiveness1 + "x)");
+                    
+                    if (damage1 > maxDamage) {
+                        maxDamage = damage1;
+                        bestResult = new BestAttackResult(pokemonIndex, 0, damage1, attacker.getNombre(), attack1.getNombre());
+                    }
                 }
             }
             
             // Evaluar ataque 2
             if (attack2 != null) {
-                double damage2 = calculateDamage(attacker, target, attack2);
-                System.out.println("  - " + attack2.getNombre() + ": " + String.format("%.1f", damage2) + " daño");
+                // Verificar efectividad antes de considerar el ataque
+                double effectiveness2 = calculateTypeEffectiveness(attack2.getTipoAtaque(), target.getTipoPokemon());
                 
-                if (damage2 > maxDamage) {
-                    maxDamage = damage2;
-                    bestResult = new BestAttackResult(pokemonIndex, 1, damage2, attacker.getNombre(), attack2.getNombre());
+                if (effectiveness2 == 0.0) {
+                    System.out.println("  - " + attack2.getNombre() + " (" + attack2.getTipoAtaque() + "): SIN EFECTO contra " + target.getTipoPokemon() + " - DESCARTADO");
+                } else {
+                    double damage2 = calculateDamage(attacker, target, attack2);
+                    System.out.println("  - " + attack2.getNombre() + " (" + attack2.getTipoAtaque() + "): " + String.format("%.1f", damage2) + " daño (efectividad: " + effectiveness2 + "x)");
+                    
+                    if (damage2 > maxDamage) {
+                        maxDamage = damage2;
+                        bestResult = new BestAttackResult(pokemonIndex, 1, damage2, attacker.getNombre(), attack2.getNombre());
+                    }
                 }
             }
         }
@@ -389,41 +404,27 @@ public class CpuPlayerService {
     }
     
     /**
-     * Calcula la efectividad de tipos (copiado de PokemonService para mantener consistencia)
+     * Calcula la efectividad de tipos usando la tabla completa de efectividades
      */
     private double calculateTypeEffectiveness(Ataque.TipoAtaque tipoAtaque, Pokemon.TipoPokemon tipoDefensor) {
-        String tipoAtaqueStr = String.valueOf(tipoAtaque);
-        String tipoDefensorStr = String.valueOf(tipoDefensor);
+        // Convertir TipoAtaque a TipoPokemon para usar con TablaEfectividades
+        Pokemon.TipoPokemon tipoAtaquePokemon;
+        try {
+            tipoAtaquePokemon = Pokemon.TipoPokemon.valueOf(tipoAtaque.name());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Tipo de ataque no reconocido: " + tipoAtaque);
+            return 1.0; // Efectividad neutral por defecto
+        }
         
-        return switch (tipoAtaqueStr) {
-            case "AGUA" -> {
-                if (tipoDefensorStr.equals("FUEGO")) yield 2.0;
-                else if (tipoDefensorStr.equals("ELECTRICO") || tipoDefensorStr.equals("AGUA")) yield 0.5;
-                else yield 1.0;
-            }
-            case "FUEGO" -> {
-                if (tipoDefensorStr.equals("PLANTA")) yield 2.0;
-                else if (tipoDefensorStr.equals("AGUA") || tipoDefensorStr.equals("FUEGO")) yield 0.5;
-                else yield 1.0;
-            }
-            case "PLANTA" -> {
-                if (tipoDefensorStr.equals("TIERRA")) yield 2.0;
-                else if (tipoDefensorStr.equals("FUEGO") || tipoDefensorStr.equals("PLANTA")) yield 0.5;
-                else yield 1.0;
-            }
-            case "TIERRA" -> {
-                if (tipoDefensorStr.equals("ELECTRICO")) yield 2.0;
-                else if (tipoDefensorStr.equals("PLANTA") || tipoDefensorStr.equals("TIERRA")) yield 0.5;
-                else yield 1.0;
-            }
-            case "ELECTRICO" -> {
-                if (tipoDefensorStr.equals("AGUA")) yield 2.0;
-                else if (tipoDefensorStr.equals("TIERRA") || tipoDefensorStr.equals("ELECTRICO")) yield 0.5;
-                else yield 1.0;
-            }
-            case "NORMAL" -> 1.0;
-            default -> 1.0;
-        };
+        // Usar la tabla de efectividades completa
+        double efectividad = TablaEfectividades.getEfectividad(tipoAtaquePokemon, tipoDefensor);
+        
+        // Debug para verificar las efectividades
+        if (efectividad != 1.0) {
+            System.out.println("DEBUG: " + tipoAtaque + " vs " + tipoDefensor + " = " + efectividad + "x");
+        }
+        
+        return efectividad;
     }
     
     /**
@@ -446,24 +447,57 @@ public class CpuPlayerService {
             Ataque attack2 = ataqueRepository.findById(attacker.getIdAtaque2()).orElse(null);
             
             if (attack1 == null && attack2 == null) return 0;
-            if (attack1 == null) return 1;
-            if (attack2 == null) return 0;
+            
+            // Verificar efectividades primero
+            double effectiveness1 = attack1 != null ? calculateTypeEffectiveness(attack1.getTipoAtaque(), target.getTipoPokemon()) : -1.0;
+            double effectiveness2 = attack2 != null ? calculateTypeEffectiveness(attack2.getTipoAtaque(), target.getTipoPokemon()) : -1.0;
+            
+            // Si solo un ataque está disponible
+            if (attack1 == null) {
+                if (effectiveness2 == 0.0) {
+                    System.out.println("ADVERTENCIA: Único ataque disponible (" + attack2.getNombre() + ") no tiene efecto");
+                }
+                return 1;
+            }
+            if (attack2 == null) {
+                if (effectiveness1 == 0.0) {
+                    System.out.println("ADVERTENCIA: Único ataque disponible (" + attack1.getNombre() + ") no tiene efecto");
+                }
+                return 0;
+            }
+            
+            // Si uno de los ataques no tiene efecto, usar el otro
+            if (effectiveness1 == 0.0 && effectiveness2 != 0.0) {
+                System.out.println("EVITANDO ATAQUE SIN EFECTO: " + attack1.getNombre() + " (" + attack1.getTipoAtaque() + ") vs " + target.getTipoPokemon() + ", usando " + attack2.getNombre());
+                return 1;
+            }
+            if (effectiveness2 == 0.0 && effectiveness1 != 0.0) {
+                System.out.println("EVITANDO ATAQUE SIN EFECTO: " + attack2.getNombre() + " (" + attack2.getTipoAtaque() + ") vs " + target.getTipoPokemon() + ", usando " + attack1.getNombre());
+                return 0;
+            }
+            
+            // Si ambos no tienen efecto, elegir el primero (aunque no haga daño)
+            if (effectiveness1 == 0.0 && effectiveness2 == 0.0) {
+                System.out.println("PROBLEMA: Ambos ataques sin efecto contra " + target.getTipoPokemon() + ", usando " + attack1.getNombre() + " por defecto");
+                return 0;
+            }
             
             // Calcular daño de cada ataque
             double damage1 = calculateDamage(attacker, target, attack1);
             double damage2 = calculateDamage(attacker, target, attack2);
             
-            // Información de debug
-            System.out.println(String.format("Evaluando ataques contra %s:", target.getNombre()));
-            System.out.println(String.format("  - %s: %.1f daño", attack1.getNombre(), damage1));
-            System.out.println(String.format("  - %s: %.1f daño", attack2.getNombre(), damage2));
+            // Información de debug mejorada
+            System.out.println(String.format("Evaluando ataques contra %s (%s):", target.getNombre(), target.getTipoPokemon()));
+            System.out.println(String.format("  - %s (%s): %.1f daño (efectividad: %.1fx)", attack1.getNombre(), attack1.getTipoAtaque(), damage1, effectiveness1));
+            System.out.println(String.format("  - %s (%s): %.1f daño (efectividad: %.1fx)", attack2.getNombre(), attack2.getTipoAtaque(), damage2, effectiveness2));
             
             // Seleccionar el ataque que haga más daño
             int selectedAttack = damage1 >= damage2 ? 0 : 1;
             String selectedName = selectedAttack == 0 ? attack1.getNombre() : attack2.getNombre();
             double selectedDamage = selectedAttack == 0 ? damage1 : damage2;
+            double selectedEffectiveness = selectedAttack == 0 ? effectiveness1 : effectiveness2;
             
-            System.out.println(String.format("  -> Seleccionado: %s (%.1f daño)", selectedName, selectedDamage));
+            System.out.println(String.format("  -> Seleccionado: %s (%.1f daño, %.1fx efectividad)", selectedName, selectedDamage, selectedEffectiveness));
             
             return selectedAttack;
             
@@ -745,17 +779,81 @@ public class CpuPlayerService {
         long enemyAlive = state.enemyTeam.stream().filter(p -> p.getVida() > 0).count();
         score += (cpuAlive - enemyAlive) * 500.0;
         
-        // 6. Bonificación por Pokemon enemigos con poca vida (oportunidad de KO)
+        // 6. MEJORADO: Bonificación por Pokemon enemigos con poca vida y evaluación de amenazas
+        double cpuThreatPotential = 0.0;
+        double enemyThreatPotential = 0.0;
+        
         for (Pokemon enemy : state.enemyTeam) {
             if (enemy.getVida() > 0) {
                 // Usar vida actual como base si vidaBase es null
                 Long vidaMaxima = enemy.getVidaBase() != null ? enemy.getVidaBase() : enemy.getVida();
                 double healthPercent = (double) enemy.getVida() / (double) vidaMaxima;
+                
                 if (healthPercent < 0.3) { // Menos del 30% de vida
-                    score += (1.0 - healthPercent) * 200.0; // Priorizar eliminar enemigos débiles
+                    score += (1.0 - healthPercent) * 400.0; // AUMENTADO: Priorizar más eliminar enemigos débiles
+                } else if (healthPercent < 0.6) {
+                    score += (0.6 - healthPercent) * 200.0; // Bonificar enemigos medianamente dañados
+                }
+                
+                // NUEVO: Evaluar qué tan peligroso es este enemigo para nosotros
+                try {
+                    Ataque enemyAttack1 = ataqueRepository.findById(enemy.getIdAtaque1()).orElse(null);
+                    Ataque enemyAttack2 = ataqueRepository.findById(enemy.getIdAtaque2()).orElse(null);
+                    
+                    // Calcular daño potencial máximo que puede hacer este enemigo
+                    double maxDamageToUs = 0.0;
+                    for (Pokemon ourPokemon : state.cpuTeam) {
+                        if (ourPokemon.getVida() <= 0) continue;
+                        
+                        if (enemyAttack1 != null) {
+                            double damage1 = calculateDamage(enemy, ourPokemon, enemyAttack1);
+                            maxDamageToUs = Math.max(maxDamageToUs, damage1);
+                        }
+                        if (enemyAttack2 != null) {
+                            double damage2 = calculateDamage(enemy, ourPokemon, enemyAttack2);
+                            maxDamageToUs = Math.max(maxDamageToUs, damage2);
+                        }
+                    }
+                    enemyThreatPotential += maxDamageToUs * healthPercent; // Escalar por vida restante
+                } catch (Exception e) {
+                    // Ignorar errores
                 }
             }
         }
+        
+        // NUEVO: Evaluar nuestro potencial ofensivo
+        for (Pokemon ourPokemon : state.cpuTeam) {
+            if (ourPokemon.getVida() <= 0) continue;
+            
+            try {
+                Ataque ourAttack1 = ataqueRepository.findById(ourPokemon.getIdAtaque1()).orElse(null);
+                Ataque ourAttack2 = ataqueRepository.findById(ourPokemon.getIdAtaque2()).orElse(null);
+                
+                // Calcular daño potencial máximo que podemos hacer
+                double maxDamageByUs = 0.0;
+                for (Pokemon enemy : state.enemyTeam) {
+                    if (enemy.getVida() <= 0) continue;
+                    
+                    if (ourAttack1 != null) {
+                        double damage1 = calculateDamage(ourPokemon, enemy, ourAttack1);
+                        maxDamageByUs = Math.max(maxDamageByUs, damage1);
+                    }
+                    if (ourAttack2 != null) {
+                        double damage2 = calculateDamage(ourPokemon, enemy, ourAttack2);
+                        maxDamageByUs = Math.max(maxDamageByUs, damage2);
+                    }
+                }
+                
+                Long vidaMaxima = ourPokemon.getVidaBase() != null ? ourPokemon.getVidaBase() : ourPokemon.getVida();
+                double healthPercent = (double) ourPokemon.getVida() / (double) vidaMaxima;
+                cpuThreatPotential += maxDamageByUs * healthPercent; // Escalar por vida restante
+            } catch (Exception e) {
+                // Ignorar errores
+            }
+        }
+        
+        // Bonificar si tenemos más potencial ofensivo
+        score += (cpuThreatPotential - enemyThreatPotential) * 2.0;
         
         // 7. Pokemon con ventaja de stats (buffs/debuffs) - PESO REDUCIDO
         for (Pokemon cpuPokemon : state.cpuTeam) {
@@ -784,7 +882,10 @@ public class CpuPlayerService {
             }
         }
         
-        // 8. Potencial de daño futuro
+        // 8. MEJORADO: Potencial de daño futuro y evaluación de estados
+        int poisonedEnemies = 0;
+        int poisonedAllies = 0;
+        
         for (Pokemon enemy : state.enemyTeam) {
             if (enemy.getVida() <= 0) continue;
 
@@ -794,21 +895,43 @@ public class CpuPlayerService {
                     switch (effect.getTipoEfecto()) {
                         case BAJAR_ATAQUE_RIVAL -> {
                             // Enemigo con ataque reducido es favorable
-                            score += 400.0;
+                            score += 600.0; // AUMENTADO
                         }
                         case BAJAR_DEFENSA_RIVAL -> {
                             // Enemigo con defensa reducida es favorable
-                            score += 350.0;
+                            score += 550.0; // AUMENTADO
                         }
                         case DANO_CONTINUO -> {
                             // Enemigo envenenado es muy favorable
-                            score += 500.0;
+                            poisonedEnemies++;
+                            score += 800.0; // AUMENTADO: Más valor por cada enemigo envenenado
                         }
                     }
                 }
             } catch (Exception e) {
                 // Ignorar errores
             }
+        }
+        
+        // NUEVO: Evaluar nuestros Pokemon envenenados (negativo)
+        for (Pokemon cpuPokemon : state.cpuTeam) {
+            if (cpuPokemon.getVida() <= 0) continue;
+
+            try {
+                Efecto effect = efectoRepository.findById(cpuPokemon.getIdEfecto()).orElse(null);
+                if (effect != null && effect.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
+                    poisonedAllies++;
+                    score -= 400.0; // Penalizar si nosotros estamos envenenados
+                }
+            } catch (Exception e) {
+                // Ignorar errores
+            }
+        }
+        
+        // NUEVO: Bonificar si tenemos ventaja en envenenamiento
+        if (poisonedEnemies > 0) {
+            score += poisonedEnemies * 300.0; // Bonificar por cada enemigo envenenado
+            System.out.println("EVALUACIÓN VENENO: " + poisonedEnemies + " enemigos envenenados vs " + poisonedAllies + " aliados envenenados");
         }
         // 9. Agregar puntuación de supervivencia como factor secundario
         score += survivalScore;
@@ -1355,33 +1478,33 @@ public class CpuPlayerService {
                             System.out.println("VELOCIDAD: " + attacker.getNombre() + " considera aumentar velocidad");
                         }
                         case DANO_CONTINUO -> {
-                            // Tóxico - se aplica a TODO el equipo rival, muy valioso contra equipos con mucha vida
+                            // Tóxico - se aplica a TODO el equipo rival de una vez
+                            // LÓGICA CORREGIDA: Si cualquier enemigo está envenenado, TODOS están envenenados
                             List<Pokemon> enemyTeam = state.cpuTurn ? state.enemyTeam : state.cpuTeam;
 
-                            // NUEVO: Verificar si TODO EL EQUIPO ENEMIGO ya está envenenado
-                            boolean allEnemiesPoisoned = true;
+                            // Verificar si ALGÚN enemigo vivo ya está envenenado
                             boolean anyEnemyPoisoned = false;
-                            int healthyEnemies = 0;
+                            int aliveEnemies = 0;
                             double totalEnemyHP = 0;
+                            int healthyEnemies = 0;
 
                             for (Pokemon enemy : enemyTeam) {
                                 if (enemy.getVida() <= 0) continue;
+                                aliveEnemies++;
 
-                                boolean isPoisoned = false;
+                                // Si encontramos un enemigo envenenado, significa que TODOS están envenenados
                                 try {
                                     Efecto enemyEffect = efectoRepository.findById(enemy.getIdEfecto()).orElse(null);
                                     if (enemyEffect != null && enemyEffect.getTipoEfecto() == Efecto.tipoEfecto.DANO_CONTINUO) {
-                                        isPoisoned = true;
                                         anyEnemyPoisoned = true;
+                                        System.out.println("VENENO DETECTADO: " + enemy.getNombre() + " está envenenado, por tanto TODO el equipo enemigo está envenenado");
+                                        break; // No necesitamos seguir verificando
                                     }
                                 } catch (Exception e) {
-                                    // Ignorar errores
+                                    System.err.println("Error verificando veneno en " + enemy.getNombre() + ": " + e.getMessage());
                                 }
 
-                                if (!isPoisoned) {
-                                    allEnemiesPoisoned = false;
-                                }
-
+                                // Calcular stats para evaluación solo si no hay veneno aún
                                 Long maxHP = enemy.getVidaBase() != null ? enemy.getVidaBase() : enemy.getVida();
                                 if ((double) enemy.getVida() / maxHP > 0.5) {
                                     healthyEnemies++;
@@ -1389,30 +1512,38 @@ public class CpuPlayerService {
                                 totalEnemyHP += enemy.getVida();
                             }
 
-                            if (allEnemiesPoisoned) {
-                                // Todo el equipo enemigo ya está envenenado - completamente inútil
-                                score = 15.0;
-                                System.out.println("TÓXICO: " + attacker.getNombre() + " NO debe usar veneno (TODO EL EQUIPO YA ENVENENADO)");
-                            } else if (anyEnemyPoisoned) {
-                                // Algunos ya están envenenados - valor muy reducido
-                                score = 800.0;
-                                System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (algunos enemigos ya envenenados)");
+                            if (anyEnemyPoisoned) {
+                                // Si cualquier enemigo está envenenado, TODO el equipo está envenenado
+                                // Usar tóxico otra vez es COMPLETAMENTE INÚTIL
+                                score = -3000.0; // PENALIZACIÓN MASIVA
+                                System.out.println("TÓXICO COMPLETAMENTE INÚTIL: " + attacker.getNombre() + 
+                                                 " NO debe usar veneno - TODO EL EQUIPO ENEMIGO YA ESTÁ ENVENENADO");
                             } else {
-                                // Nadie está envenenado - evaluar valor completo
+                                // Ningún enemigo está envenenado - evaluar valor del tóxico
                                 double baseScore = 0;
                                 if (totalEnemyHP > 300 && healthyEnemies >= 2) {
                                     // Equipo enemigo fuerte - veneno muy valioso
-                                    baseScore = 3500.0;
-                                    System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (equipo enemigo fuerte: " + (int)totalEnemyHP + " HP total, " + healthyEnemies + " enemigos sanos)");
+                                    baseScore = 4500.0; // AUMENTADO: Más valor cuando realmente es útil
+                                    System.out.println("TÓXICO EXCELENTE: " + attacker.getNombre() + 
+                                                     " considera veneno (equipo enemigo fuerte: " + (int)totalEnemyHP + 
+                                                     " HP total, " + healthyEnemies + " enemigos sanos)");
                                 } else if (totalEnemyHP > 200) {
-                                    baseScore = 2500.0;
-                                    System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (equipo enemigo moderado: " + (int)totalEnemyHP + " HP total)");
+                                    baseScore = 3500.0; // AUMENTADO
+                                    System.out.println("TÓXICO BUENO: " + attacker.getNombre() + 
+                                                     " considera veneno (equipo enemigo moderado: " + (int)totalEnemyHP + " HP total)");
+                                } else if (totalEnemyHP > 100) {
+                                    baseScore = 2000.0; // AUMENTADO
+                                    System.out.println("TÓXICO ÚTIL: " + attacker.getNombre() + 
+                                                     " considera veneno (equipo enemigo débil: " + (int)totalEnemyHP + " HP total)");
                                 } else {
-                                    baseScore = 1200.0;
-                                    System.out.println("TÓXICO: " + attacker.getNombre() + " considera veneno (equipo enemigo débil: " + (int)totalEnemyHP + " HP total)");
+                                    baseScore = 800.0; // Equipo muy débil, veneno menos valioso
+                                    System.out.println("TÓXICO MARGINAL: " + attacker.getNombre() + 
+                                                     " considera veneno (equipo enemigo muy débil: " + (int)totalEnemyHP + " HP total)");
                                 }
 
                                 score = baseScore;
+                                System.out.println("TÓXICO DISPONIBLE: " + attacker.getNombre() + 
+                                                 " puede envenenar a TODO el equipo enemigo (" + aliveEnemies + " enemigos vivos)");
                             }
                         }
                         case BAJAR_ATAQUE_RIVAL -> {
@@ -1559,17 +1690,59 @@ public class CpuPlayerService {
                 Long attackId = action.attackIndex == 0 ? attacker.getIdAtaque1() : attacker.getIdAtaque2();
                 Ataque attack = ataqueRepository.findById(attackId).orElse(null);
                 if (attack != null) {
+                    // NUEVO: Verificar efectividad ANTES de calcular daño
+                    double effectiveness = calculateTypeEffectiveness(attack.getTipoAtaque(), target.getTipoPokemon());
+                    
+                    // Si la efectividad es 0.0 (ataque no hace efecto), penalizar ENORMEMENTE
+                    if (effectiveness == 0.0) {
+                        score = -5000.0; // Penalización masiva para ataques que no hacen efecto
+                        System.out.println("ATAQUE INÚTIL: " + attacker.getNombre() + " NO debe usar " + attack.getNombre() + 
+                                         " (" + attack.getTipoAtaque() + ") contra " + target.getNombre() + 
+                                         " (" + target.getTipoPokemon() + ") - SIN EFECTO");
+                        return score;
+                    }
+                    
                     double damage = calculateDamage(attacker, target, attack);
                     score = damage;
 
-                    // Bonificar si puede hacer OHKO
-                    if (damage >= target.getVida()) {
-                        score += 2000.0; // Reducido para dar más prioridad a curación crítica
+                    // MEJORADO: Bonificar más agresivamente ataques super efectivos
+                    if (effectiveness >= 2.0) {
+                        double superEffectiveBonus = 2000.0 * effectiveness; // Escala con la efectividad
+                        score += superEffectiveBonus;
+                        System.out.println("SUPER EFECTIVO MEJORADO: " + attacker.getNombre() + " - " + attack.getNombre() + 
+                                         " (" + attack.getTipoAtaque() + ") vs " + target.getNombre() + 
+                                         " (" + target.getTipoPokemon() + ") = " + effectiveness + "x (+" + (int)superEffectiveBonus + " bonus)");
+                    } else if (effectiveness >= 1.5) {
+                        // STAB o efectividad moderada
+                        score += 800.0;
+                        System.out.println("EFECTIVO: " + attacker.getNombre() + " - " + attack.getNombre() + 
+                                         " vs " + target.getNombre() + " = " + effectiveness + "x (+800 bonus)");
+                    } else if (effectiveness < 1.0 && effectiveness > 0.0) {
+                        // Efectividad reducida - penalizar
+                        double penalty = (1.0 - effectiveness) * 1000.0;
+                        score -= penalty;
+                        System.out.println("POCO EFECTIVO: " + attacker.getNombre() + " - " + attack.getNombre() + 
+                                         " vs " + target.getNombre() + " = " + effectiveness + "x (-" + (int)penalty + " penalty)");
                     }
 
-                    // Bonificar ataques super efectivos
-                    if (isSuperEffective(attack, target)) {
-                        score += 500.0;
+                    // Bonificar si puede hacer OHKO
+                    if (damage >= target.getVida()) {
+                        score += 3000.0; // AUMENTADO: OHKO debe tener prioridad muy alta
+                        System.out.println("OHKO DETECTADO: " + attacker.getNombre() + " puede eliminar a " + target.getNombre() + 
+                                         " con " + attack.getNombre() + " (" + (int)damage + " daño vs " + target.getVida() + " HP)");
+                    }
+
+                    // Bonificar si puede quitar más del 70% de vida (casi OHKO)
+                    else if (damage >= target.getVida() * 0.7) {
+                        score += 1500.0;
+                        System.out.println("CASI OHKO: " + attacker.getNombre() + " puede hacer " + (int)damage + " daño a " + target.getNombre() + 
+                                         " (" + String.format("%.1f", (damage / target.getVida()) * 100) + "% de su vida)");
+                    }
+                    
+                    // Debug de daño calculado
+                    if (damage > 0) {
+                        System.out.println("EVALUACIÓN ATAQUE: " + attacker.getNombre() + " - " + attack.getNombre() + 
+                                         " vs " + target.getNombre() + " = " + (int)damage + " daño (efectividad: " + effectiveness + "x, score final: " + (int)score + ")");
                     }
                 }
             } catch (Exception e) {

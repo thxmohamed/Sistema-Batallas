@@ -1223,6 +1223,18 @@ button.selected {
 .type-tierra { background: linear-gradient(135deg, #E0C068 0%, #F39C12 100%); }
 .type-electrico { background: linear-gradient(135deg, #F8D030 0%, #F1C40F 100%); }
 .type-normal { background: linear-gradient(135deg, #A8A878 0%, #95A5A6 100%); }
+.type-volador { background: linear-gradient(135deg, #90a8f0 0%, #444dad 100%); }
+.type-lucha { background: linear-gradient(135deg, #C03028 0%, #C0392B 100%); }
+.type-veneno { background: linear-gradient(135deg, #A040A0 0%, #b84ce7 100%); }
+.type-psiquico { background: linear-gradient(135deg, #F85888 0%, #E74C3C 100%); }
+.type-hielo { background: linear-gradient(135deg, #98D8D8 0%, #1ABC9C 100%); }
+.type-roca { background: linear-gradient(135deg, #B8A038 0%, #D35400 100%); }
+.type-bicho { background: linear-gradient(135deg, #c6d449 0%, #78cf9c 100%); }
+.type-fantasma { background: linear-gradient(135deg, #705898 0%, #8E44AD 100%); }
+.type-dragon { background: linear-gradient(135deg, #4f10e3 0%, #9004cb 100%); }
+.type-siniestro { background: linear-gradient(135deg, #705848 0%, #34495E 100%); } 
+.type-acero { background: linear-gradient(135deg, #B8B8D0 0%, #95A5A6 100%); }
+.type-hada { background: linear-gradient(135deg, #F0B6C1 0%, #F39C12 100%); }
 
 /* =============================================
    PROGRESS INDICATORS
@@ -4293,4 +4305,44 @@ button.selected {
 .strength-icon {
   font-size: 1.2rem;
   color: #4a5568;
+}
+
+.attack-filters {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filter-label {
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.filter-input {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #4a5568;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.filter-select {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #4a5568;
+  background: rgba(255, 255, 255, 0.1);
 }

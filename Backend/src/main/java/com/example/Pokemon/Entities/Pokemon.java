@@ -13,11 +13,24 @@ public class Pokemon {
     private Long id;
     private String nombre;
     public enum TipoPokemon {
-        AGUA,
+        NORMAL,
         FUEGO,
+        AGUA,
+        ELECTRICO,
         PLANTA,
+        HIELO,
+        LUCHA,
+        VENENO,
         TIERRA,
-        ELECTRICO
+        VOLADOR,
+        PSIQUICO,
+        BICHO,
+        ROCA,
+        FANTASMA,
+        DRAGON,
+        SINIESTRO,
+        ACERO,
+        HADA
     }
     @Enumerated(EnumType.STRING)
     public TipoPokemon tipoPokemon;

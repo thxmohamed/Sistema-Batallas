@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import pokemonService from "../services/pokemon.service";
+import pokemonService from "../Services/pokemon.service";
 import entrenadorService from "../services/entrenador.service";
 import "../App.css";
 
@@ -29,9 +29,17 @@ const CrearEntrenador = () => {
   const [errorMessage, setErrorMessage] = useState("");
   
   // Available options for filters
-  const [tiposDisponibles] = useState(["AGUA", "FUEGO", "PLANTA", "TIERRA", "ELECTRICO"]);
+  const [tiposDisponibles] = useState([
+    "NORMAL", "FUEGO", "AGUA", "ELECTRICO", "PLANTA", "HIELO",
+    "LUCHA", "VENENO", "TIERRA", "VOLADOR", "PSIQUICO", "BICHO",
+    "ROCA", "FANTASMA", "DRAGON", "SINIESTRO", "ACERO", "HADA"
+  ]);
   const [efectosDisponibles] = useState(["DANO_CONTINUO", "SUBIR_ATAQUE_PROPIO", "SUBIR_DEFENSA_PROPIO", "BAJAR_ATAQUE_RIVAL", "BAJAR_DEFENSA_RIVAL", "SUBIR_VIDA"]);
-  const [tiposAtaqueDisponibles] = useState(["AGUA", "FUEGO", "PLANTA", "TIERRA", "ELECTRICO"]);
+  const [tiposAtaqueDisponibles] = useState([
+    "NORMAL", "FUEGO", "AGUA", "ELECTRICO", "PLANTA", "HIELO",
+    "LUCHA", "VENENO", "TIERRA", "VOLADOR", "PSIQUICO", "BICHO",
+    "ROCA", "FANTASMA", "DRAGON", "SINIESTRO", "ACERO", "HADA"
+  ]);
 
   // Debounced search function
   const [searchTimeout, setSearchTimeout] = useState(null);
@@ -758,11 +766,24 @@ const CrearEntrenador = () => {
 // Helper function for type icons
 const getTypeIcon = (tipo) => {
   const icons = {
-    AGUA: "💧",
+    NORMAL: "⭐",
     FUEGO: "🔥",
+    AGUA: "💧",
+    ELECTRICO: "⚡",
     PLANTA: "🌿",
+    HIELO: "❄️",
+    LUCHA: "👊",
+    VENENO: "☠️",
     TIERRA: "🌍",
-    ELECTRICO: "⚡"
+    VOLADOR: "🦅",
+    PSIQUICO: "🔮",
+    BICHO: "🐛",
+    ROCA: "⛰️",
+    FANTASMA: "👻",
+    DRAGON: "🐉",
+    SINIESTRO: "🌙",
+    ACERO: "⚙️",
+    HADA: "✨"
   };
   return icons[tipo] || "⭐";
 };
